@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台管理系统 - MARKET LINK LOGISTICS</title>
+    <link rel="stylesheet" href="admin-styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-shipping-fast"></i>
+                <span>MARKET LINK</span>
+            </div>
+            <div class="admin-info">
+                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="管理员" class="admin-avatar">
+                <div class="admin-details">
+                    <h4>张经理</h4>
+                    <p>仓库管理员</p>
+                </div>
+            </div>
+        </div>
+        
+        <ul class="sidebar-menu">
+            <li class="menu-item active" data-tab="dashboard">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>控制台</span>
+            </li>
+            <li class="menu-item" data-tab="inbound">
+                <i class="fas fa-arrow-down"></i>
+                <span>入库管理</span>
+            </li>
+            <li class="menu-item" data-tab="outbound">
+                <i class="fas fa-arrow-up"></i>
+                <span>出库管理</span>
+            </li>
+            <li class="menu-item" data-tab="inventory">
+                <i class="fas fa-boxes"></i>
+                <span>库存管理</span>
+            </li>
+            <li class="menu-item" data-tab="orders">
+                <i class="fas fa-clipboard-list"></i>
+                <span>订单管理</span>
+            </li>
+            <li class="menu-item" data-tab="tracking">
+                <i class="fas fa-route"></i>
+                <span>物流跟踪</span>
+            </li>
+            <li class="menu-item" data-tab="reports">
+                <i class="fas fa-chart-bar"></i>
+                <span>报表统计</span>
+            </li>
+            <li class="menu-item" data-tab="settings">
+                <i class="fas fa-cog"></i>
+                <span>系统设置</span>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            <button class="logout-btn" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>退出登录</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <main class="main-content">
+        <!-- 顶部导航栏 -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 id="page-title">控制台</h1>
+            </div>
+            <div class="header-right">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="搜索...">
+                </div>
+                <div class="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </div>
+                <div class="user-menu">
+                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="用户头像">
+                </div>
+            </div>
+        </header>
+
+        <!-- 内容区域 -->
+        <div class="content-area">
+            <!-- 控制台页面 -->
+            <div id="dashboard" class="tab-content active">
+                <div class="dashboard-grid">
+                    <!-- 统计卡片 -->
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>总库存</h3>
+                            <p class="stat-number">1,234</p>
+                            <span class="stat-change positive">+12%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>今日入库</h3>
+                            <p class="stat-number">89</p>
+                            <span class="stat-change positive">+5%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>今日出库</h3>
+                            <p class="stat-number">156</p>
+                            <span class="stat-change negative">-3%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>运输中</h3>
+                            <p class="stat-number">45</p>
+                            <span class="stat-change positive">+8%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 快速操作 -->
+                <div class="quick-actions">
+                    <h2>快速操作</h2>
+                    <div class="action-grid">
+                        <button class="action-btn" onclick="showModal('inbound-modal')">
+                            <i class="fas fa-arrow-down"></i>
+                            <span>新建入库</span>
+                        </button>
+                        <button class="action-btn" onclick="showModal('outbound-modal')">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>新建出库</span>
+                        </button>
+                        <button class="action-btn" onclick="showModal('order-modal')">
+                            <i class="fas fa-plus"></i>
+                            <span>新建订单</span>
+                        </button>
+                        <button class="action-btn" onclick="showModal('tracking-modal')">
+                            <i class="fas fa-route"></i>
+                            <span>物流跟踪</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 最近活动 -->
+                <div class="recent-activities">
+                    <h2>最近活动</h2>
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-arrow-down"></i>
+                            </div>
+                            <div class="activity-content">
+                                <h4>入库完成</h4>
+                                <p>订单 #IN2024001 已成功入库，包含 50 件商品</p>
+                                <span class="activity-time">2分钟前</span>
+                            </div>
+                        </div>
+                        
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-arrow-up"></i>
+                            </div>
+                            <div class="activity-content">
+                                <h4>出库处理</h4>
+                                <p>订单 #OUT2024001 正在出库处理中</p>
+                                <span class="activity-time">15分钟前</span>
+                            </div>
+                        </div>
+                        
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-truck"></i>
+                            </div>
+                            <div class="activity-content">
+                                <h4>物流更新</h4>
+                                <p>包裹 #ML123456789 已到达北京配送中心</p>
+                                <span class="activity-time">1小时前</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 入库管理页面 -->
+            <div id="inbound" class="tab-content">
+                <div class="page-header">
+                    <h2>入库管理</h2>
+                    <button class="btn btn-primary" onclick="showModal('inbound-modal')">
+                        <i class="fas fa-plus"></i> 新建入库
+                    </button>
+                </div>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>状态筛选</label>
+                        <select id="inbound-status-filter">
+                            <option value="">全部状态</option>
+                            <option value="pending">待处理</option>
+                            <option value="processing">处理中</option>
+                            <option value="completed">已完成</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>日期范围</label>
+                        <input type="date" id="inbound-date-start">
+                        <input type="date" id="inbound-date-end">
+                    </div>
+                    <button class="btn btn-secondary" onclick="filterInbound()">
+                        <i class="fas fa-search"></i> 筛选
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>入库单号</th>
+                                <th>供应商</th>
+                                <th>商品数量</th>
+                                <th>入库时间</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inbound-table-body">
+                            <tr>
+                                <td>IN2024001</td>
+                                <td>上海贸易公司</td>
+                                <td>150件</td>
+                                <td>2024-01-15 14:30</td>
+                                <td><span class="status-badge completed">已完成</span></td>
+                                <td>
+                                    <button class="btn btn-small" onclick="viewInbound('IN2024001')">查看</button>
+                                    <button class="btn btn-small btn-secondary" onclick="editInbound('IN2024001')">编辑</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>IN2024002</td>
+                                <td>广州物流公司</td>
+                                <td>89件</td>
+                                <td>2024-01-15 16:45</td>
+                                <td><span class="status-badge processing">处理中</span></td>
+                                <td>
+                                    <button class="btn btn-small" onclick="viewInbound('IN2024002')">查看</button>
+                                    <button class="btn btn-small btn-secondary" onclick="editInbound('IN2024002')">编辑</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 出库管理页面 -->
+            <div id="outbound" class="tab-content">
+                <div class="page-header">
+                    <h2>出库管理</h2>
+                    <button class="btn btn-primary" onclick="showModal('outbound-modal')">
+                        <i class="fas fa-plus"></i> 新建出库
+                    </button>
+                </div>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>状态筛选</label>
+                        <select id="outbound-status-filter">
+                            <option value="">全部状态</option>
+                            <option value="pending">待处理</option>
+                            <option value="processing">处理中</option>
+                            <option value="shipped">已发货</option>
+                            <option value="completed">已完成</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>日期范围</label>
+                        <input type="date" id="outbound-date-start">
+                        <input type="date" id="outbound-date-end">
+                    </div>
+                    <button class="btn btn-secondary" onclick="filterOutbound()">
+                        <i class="fas fa-search"></i> 筛选
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>出库单号</th>
+                                <th>客户</th>
+                                <th>商品数量</th>
+                                <th>出库时间</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="outbound-table-body">
+                            <tr>
+                                <td>OUT2024001</td>
+                                <td>北京科技有限公司</td>
+                                <td>25件</td>
+                                <td>2024-01-15 09:15</td>
+                                <td><span class="status-badge processing">处理中</span></td>
+                                <td>
+                                    <button class="btn btn-small" onclick="viewOutbound('OUT2024001')">查看</button>
+                                    <button class="btn btn-small btn-secondary" onclick="editOutbound('OUT2024001')">编辑</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>OUT2024002</td>
+                                <td>深圳电子公司</td>
+                                <td>100件</td>
+                                <td>2024-01-15 11:30</td>
+                                <td><span class="status-badge shipped">已发货</span></td>
+                                <td>
+                                    <button class="btn btn-small" onclick="viewOutbound('OUT2024002')">查看</button>
+                                    <button class="btn btn-small btn-secondary" onclick="editOutbound('OUT2024002')">编辑</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 库存管理页面 -->
+            <div id="inventory" class="tab-content">
+                <div class="page-header">
+                    <h2>库存管理</h2>
+                    <button class="btn btn-primary" onclick="showModal('inventory-modal')">
+                        <i class="fas fa-plus"></i> 添加商品
+                    </button>
+                </div>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>商品分类</label>
+                        <select id="inventory-category-filter">
+                            <option value="">全部分类</option>
+                            <option value="electronics">电子产品</option>
+                            <option value="clothing">服装</option>
+                            <option value="food">食品</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>库存状态</label>
+                        <select id="inventory-status-filter">
+                            <option value="">全部状态</option>
+                            <option value="in-stock">有库存</option>
+                            <option value="low-stock">库存不足</option>
+                            <option value="out-of-stock">缺货</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary" onclick="filterInventory()">
+                        <i class="fas fa-search"></i> 筛选
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>商品编码</th>
+                                <th>商品名称</th>
+                                <th>分类</th>
+                                <th>当前库存</th>
+                                <th>安全库存</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body">
+                            <tr>
+                                <td>SKU001</td>
+                                <td>iPhone 15 Pro</td>
+                                <td>电子产品</td>
+                                <td>150</td>
+                                <td>50</td>
+                                <td><span class="status-badge in-stock">有库存</span></td>
+                                <td>
+                                    <button class="btn btn-small" onclick="viewInventory('SKU001')">查看</button>
+                                    <button class="btn btn-small btn-secondary" onclick="editInventory('SKU001')">编辑</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>SKU002</td>
+                                <td>MacBook Air</td>
+                                <td>电子产品</td>
+                                <td>25</td>
+                                <td>30</td>
+                                <td><span class="status-badge low-stock">库存不足</span></td>
+                                <td>
+                                    <button class="btn btn-small" onclick="viewInventory('SKU002')">查看</button>
+                                    <button class="btn btn-small btn-secondary" onclick="editInventory('SKU002')">编辑</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 订单管理页面 -->
+            <div id="orders" class="tab-content">
+                <div class="page-header">
+                    <h2>订单管理</h2>
+                    <button class="btn btn-primary" onclick="showModal('order-modal')">
+                        <i class="fas fa-plus"></i> 新建订单
+                    </button>
+                </div>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>订单状态</label>
+                        <select id="order-status-filter">
+                            <option value="">全部状态</option>
+                            <option value="pending">待处理</option>
+                            <option value="processing">处理中</option>
+                            <option value="shipped">已发货</option>
+                            <option value="delivered">已送达</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>日期范围</label>
+                        <input type="date" id="order-date-start">
+                        <input type="date" id="order-date-end">
+                    </div>
+                    <button class="btn btn-secondary" onclick="filterOrders()">
+                        <i class="fas fa-search"></i> 筛选
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>订单号</th>
+                                <th>客户</th>
+                                <th>商品</th>
+                                <th>数量</th>
+                                <th>总金额</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-table-body">
+                            <tr>
+                                <td>ORD2024001</td>
+                                <td>北京科技有限公司</td>
+                                <td>iPhone 15 Pro</td>
+                                <td>5</td>
+                                <td>¥45,000</td>
+                                <td><span class="status-badge processing">处理中</span></td>
+                                <td>
+                                    <button class="btn btn-small" onclick="viewOrder('ORD2024001')">查看</button>
+                                    <button class="btn btn-small btn-secondary" onclick="editOrder('ORD2024001')">编辑</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 物流跟踪页面 -->
+            <div id="tracking" class="tab-content">
+                <div class="page-header">
+                    <h2>物流跟踪</h2>
+                    <button class="btn btn-primary" onclick="showModal('tracking-modal')">
+                        <i class="fas fa-plus"></i> 添加跟踪
+                    </button>
+                </div>
+                
+                <div class="tracking-container">
+                    <div class="tracking-search">
+                        <input type="text" id="tracking-search" placeholder="输入跟踪号或订单号">
+                        <button class="btn btn-primary" onclick="searchTracking()">
+                            <i class="fas fa-search"></i> 搜索
+                        </button>
+                    </div>
+                    
+                    <div class="tracking-results" id="tracking-results">
+                        <!-- 跟踪结果将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 报表统计页面 -->
+            <div id="reports" class="tab-content">
+                <div class="page-header">
+                    <h2>报表统计</h2>
+                    <div class="report-actions">
+                        <button class="btn btn-secondary" onclick="exportReport()">
+                            <i class="fas fa-download"></i> 导出报表
+                        </button>
+                        <button class="btn btn-primary" onclick="generateReport()">
+                            <i class="fas fa-chart-bar"></i> 生成报表
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="reports-grid">
+                    <div class="report-card">
+                        <h3>入库统计</h3>
+                        <div class="chart-container">
+                            <canvas id="inbound-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="report-card">
+                        <h3>出库统计</h3>
+                        <div class="chart-container">
+                            <canvas id="outbound-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="report-card">
+                        <h3>库存分析</h3>
+                        <div class="chart-container">
+                            <canvas id="inventory-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系统设置页面 -->
+            <div id="settings" class="tab-content">
+                <div class="page-header">
+                    <h2>系统设置</h2>
+                </div>
+                
+                <div class="settings-grid">
+                    <div class="settings-card">
+                        <h3>用户管理</h3>
+                        <div class="settings-content">
+                            <div class="setting-item">
+                                <label>用户名</label>
+                                <input type="text" value="admin" disabled>
+                            </div>
+                            <div class="setting-item">
+                                <label>邮箱</label>
+                                <input type="email" value="admin@marketlinklogistics.com">
+                            </div>
+                            <div class="setting-item">
+                                <label>角色</label>
+                                <select>
+                                    <option>仓库管理员</option>
+                                    <option>系统管理员</option>
+                                    <option>操作员</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-card">
+                        <h3>系统配置</h3>
+                        <div class="settings-content">
+                            <div class="setting-item">
+                                <label>仓库名称</label>
+                                <input type="text" value="MARKET LINK 主仓库">
+                            </div>
+                            <div class="setting-item">
+                                <label>时区</label>
+                                <select>
+                                    <option>Asia/Shanghai</option>
+                                    <option>UTC</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label>语言</label>
+                                <select>
+                                    <option>中文</option>
+                                    <option>English</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 模态框 -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">模态框标题</h3>
+                <button class="close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-body" class="modal-body">
+                <!-- 模态框内容将在这里动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html> 
