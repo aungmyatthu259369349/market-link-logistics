@@ -2,9 +2,14 @@ const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcryptjs');
 const config = require('../config');
 const path = require('path');
+const fs = require('fs');
 
 // 确保数据库目录存在
 const dbPath = path.resolve(config.DB_PATH);
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+}
 const db = new sqlite3.Database(dbPath);
 
 console.log('初始化数据库...');
@@ -141,29 +146,23 @@ const createTables = `
     );
 `;
 
-
-
 // 执行数据库初始化
 db.serialize(() => {
-    // 执行创建表的SQL
     db.exec(createTables, async (err) => {
         if (err) {
             console.error('创建表时出错:', err);
             return;
         }
         console.log('数据库表创建成功');
-        
-        // 插入初始数据
+
         try {
-            // 创建管理员用户
             const hashedPassword = await bcrypt.hash(config.ADMIN.PASSWORD, 10);
-            
+
             db.run(`INSERT OR IGNORE INTO users (username, email, password, company_name, contact_name, role) 
                     VALUES (?, ?, ?, ?, ?, ?)`, 
                    [config.ADMIN.USERNAME, config.ADMIN.EMAIL, hashedPassword, 
                     'Market Link Logistics', '系统管理员', 'admin']);
 
-            // 插入示例商品
             const sampleProducts = [
                 ['SKU001', 'iPhone 15 Pro', 'electronics', '苹果手机', 'piece', 50],
                 ['SKU002', 'MacBook Air', 'electronics', '苹果笔记本', 'piece', 30],
@@ -176,7 +175,6 @@ db.serialize(() => {
                         VALUES (?, ?, ?, ?, ?, ?)`, product);
             }
 
-            // 初始化库存
             db.run(`INSERT OR IGNORE INTO inventory (product_id, current_stock, available_stock) 
                     SELECT id, 150, 150 FROM products WHERE sku = 'SKU001'`);
             db.run(`INSERT OR IGNORE INTO inventory (product_id, current_stock, available_stock) 
@@ -186,7 +184,6 @@ db.serialize(() => {
             db.run(`INSERT OR IGNORE INTO inventory (product_id, current_stock, available_stock) 
                     SELECT id, 500, 500 FROM products WHERE sku = 'SKU004'`);
 
-            // 插入示例跟踪记录
             db.run(`INSERT OR IGNORE INTO tracking (tracking_number, current_status, current_location, estimated_delivery) 
                     VALUES ('ML123456789', '运输中', '北京市朝阳区配送中心', '2024-01-15')`);
             db.run(`INSERT OR IGNORE INTO tracking (tracking_number, current_status, current_location, estimated_delivery) 
@@ -196,8 +193,7 @@ db.serialize(() => {
         } catch (error) {
             console.error('插入初始数据时出错:', error);
         }
-        
-        // 关闭数据库连接
+
         setTimeout(() => {
             db.close((err) => {
                 if (err) {
@@ -206,6 +202,6 @@ db.serialize(() => {
                     console.log('数据库初始化完成！');
                 }
             });
-        }, 1000);
+        }, 200);
     });
 }); 

@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const config = require('./config');
 
 const app = express();
@@ -13,6 +14,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('./')); // 提供静态文件服务
+
+// 确保数据库目录存在
+const dbPath = path.resolve(config.DB_PATH);
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+}
 
 // 数据库连接
 const db = new sqlite3.Database(config.DB_PATH);
