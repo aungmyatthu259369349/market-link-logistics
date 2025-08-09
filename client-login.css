@@ -1,0 +1,14 @@
+/* 客户专区登录/注册 - 玻璃拟态，与后台风格一致 */
+:root { --client-glass: rgba(255,255,255,.06); --client-border: rgba(0,212,255,.25); }
+.client-hero { background: transparent; padding-top: 120px; }
+.auth-container { max-width: 840px; margin: 0 auto; }
+.auth-tabs { display: flex; gap: 10px; margin-bottom: 14px; }
+.auth-tab { padding: 10px 14px; border: 1px solid var(--client-border); border-radius: 10px; background: var(--client-glass); color:#e9f7ff; cursor: pointer; }
+.auth-tab.active { background: linear-gradient(135deg,#00d4ff,#0099cc); color:#04202b; font-weight:800; }
+.auth-form { background: var(--client-glass); border:1px solid var(--client-border); border-radius: 16px; backdrop-filter: blur(18px); padding: 22px; box-shadow: 0 10px 30px rgba(0,212,255,.15); }
+.auth-form h2 { margin: 0 0 10px; }
+.auth-form .form-group label { font-weight:600; color:#e9f7ff; margin-bottom:8px; display:block; }
+.auth-form .form-group input, .auth-form .form-group textarea, .auth-form .form-group select { background: rgba(255,255,255,.06); border:1px solid var(--client-border); border-radius:12px; padding:12px 14px; color:#fff; }
+.auth-form .btn { margin-top: 8px; }
+.auth-link { text-align:center; margin-top: 12px; }
+.modal .modal-content { border-radius: 16px; border:1px solid var(--client-border); } 
