@@ -17,8 +17,7 @@ function initializeClientArea() {
     if (isLoggedIn) {
         showDashboard();
     } else {
-        window.location.href = 'client-login.html';
-        return;
+        showAuthSection();
     }
     
     // 设置默认显示登录表单
