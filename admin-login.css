@@ -5,9 +5,9 @@
   --text: #fff;
   --muted: #b0b0b0;
   --bg-dark: #0a0a0a;
-  --glass: rgba(255,255,255,0.06);
-  --border: rgba(0,212,255,0.25);
-  --shadow: 0 10px 30px rgba(0,212,255,0.15);
+  --glass: rgba(255, 255, 255, 0.06);
+  --border: rgba(0, 212, 255, 0.25);
+  --shadow: 0 10px 30px rgba(0, 212, 255, 0.15);
 }
 
 * { box-sizing: border-box; }
@@ -17,7 +17,8 @@ body {
   font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   color: var(--text);
   background: var(--bg-dark);
-  overflow: hidden;
+  /* 允许页面滚动，避免注册页内容较多时无法下滑 */
+  overflow-y: auto;
 }
 
 /* 渐变背景与粒子 */
@@ -33,7 +34,7 @@ body {
 
 .login-wrapper {
   position: relative; z-index:1;
-  max-width: 440px; margin: 8vh auto; padding: 0 16px;
+  max-width: 520px; margin: 8vh auto; padding: 0 16px;
 }
 
 .brand {
