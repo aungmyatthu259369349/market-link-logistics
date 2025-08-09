@@ -1050,6 +1050,34 @@ body::before {
     .nav-logo span { font-size: 1.4rem; }
 }
 
+/* 客户专区表单优化 */
+.client-auth .auth-container,
+.client-dashboard .dashboard-card,
+.client-auth .auth-form {
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.client-auth .auth-form .form-group input,
+.client-auth .auth-form .form-group textarea,
+.client-auth .auth-form .form-group select {
+  max-width: 100%;
+}
+
+/* 限制输入框的视觉宽度，避免一行太长 */
+.client-auth .auth-form { padding: 1rem; }
+.client-auth .auth-form .form-group input,
+.client-auth .auth-form .form-group textarea,
+.client-auth .auth-form .form-group select {
+  width: 100%;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .client-auth .auth-container { padding: 0 12px; }
+}
+
 /* 滚动条样式 */
 ::-webkit-scrollbar {
     width: 8px;
