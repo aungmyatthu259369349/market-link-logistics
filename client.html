@@ -12,10 +12,10 @@
     <!-- 导航栏 -->
     <nav class="navbar">
         <div class="nav-container">
-            <div class="nav-logo">
+            <a href="index.html#home" class="nav-logo" aria-label="返回首页">
                 <i class="fas fa-shipping-fast"></i>
                 <span>MARKET LINK LOGISTICS</span>
-            </div>
+            </a>
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">首页</a></li>
                 <li><a href="index.html#services" class="nav-link">服务</a></li>
@@ -58,11 +58,11 @@
                     <form id="loginForm">
                         <div class="form-group">
                             <label>用户名/邮箱</label>
-                            <input type="text" placeholder="请输入用户名或邮箱" required>
+                            <input type="text" name="username" placeholder="请输入用户名或邮箱" required>
                         </div>
                         <div class="form-group">
                             <label>密码</label>
-                            <input type="password" placeholder="请输入密码" required>
+                            <input type="password" name="password" placeholder="请输入密码" required>
                         </div>
                         <div class="form-group">
                             <label class="checkbox-label">
@@ -106,6 +106,9 @@
                         </div>
                         <button type="submit" class="btn btn-primary">注册</button>
                     </form>
+                    <p class="auth-link" style="text-align:center;margin-top:1rem;">
+                        <button class="btn btn-secondary btn-small" onclick="showTab('login')">返回登录</button>
+                    </p>
                 </div>
 
                 <!-- 忘记密码 -->
@@ -118,8 +121,8 @@
                         </div>
                         <button type="submit" class="btn btn-primary">发送重置链接</button>
                     </form>
-                    <p class="auth-link">
-                        <a href="#" onclick="showTab('login')">返回登录</a>
+                    <p class="auth-link" style="text-align:center;margin-top:1rem;">
+                        <button class="btn btn-secondary btn-small" onclick="showTab('login')">返回登录</button>
                     </p>
                 </div>
             </div>

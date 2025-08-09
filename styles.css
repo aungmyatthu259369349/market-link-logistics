@@ -79,6 +79,7 @@ body::before {
     justify-content: space-between;
     align-items: center;
     height: 80px;
+    white-space: nowrap;
 }
 
 .nav-logo {
@@ -130,6 +131,7 @@ body::before {
     display: flex;
     list-style: none;
     gap: 2.5rem;
+    align-items: center;
 }
 
 .nav-link {
@@ -161,6 +163,11 @@ body::before {
 .nav-link.active {
     color: var(--primary-color);
     text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+}
+
+.nav-logo span {
+    font-weight: 700;
+    letter-spacing: 0.5px;
 }
 
 .client-link {
@@ -287,7 +294,7 @@ body::before {
 
 .hero-content h1 {
     font-size: 4rem;
-    font-weight: 800;
+    font-weight: 700; /* 从 800 调整为 700 更易读 */
     margin-bottom: 1rem;
     line-height: 1.1;
     background: var(--gradient-primary);
@@ -296,6 +303,7 @@ body::before {
     background-clip: text;
     text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
     animation: textGlow 3s ease-in-out infinite alternate;
+    letter-spacing: 1px;
 }
 
 @keyframes textGlow {
@@ -1035,6 +1043,9 @@ body::before {
     .services-grid {
         grid-template-columns: 1fr;
     }
+
+    .nav-container { white-space: normal; }
+    .nav-logo span { font-size: 1.4rem; }
 }
 
 /* 滚动条样式 */
