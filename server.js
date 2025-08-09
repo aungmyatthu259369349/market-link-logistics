@@ -57,6 +57,13 @@ const requireAdmin = (req, res, next) => {
 app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body;
 
+    // 优先支持环境管理员直登，保证后台可用
+    if (username === config.ADMIN.USERNAME && password === config.ADMIN.PASSWORD) {
+        const adminUser = { id: 0, username, email: config.ADMIN.EMAIL, role: 'admin' };
+        const token = jwt.sign({ id: 0, username, role: 'admin' }, config.JWT_SECRET, { expiresIn: '24h' });
+        return res.json({ success: true, token, user: adminUser });
+    }
+
     db.get('SELECT * FROM users WHERE username = ? OR email = ?', [username, username], async (err, user) => {
         if (err) {
             console.error('登录查询数据库失败:', err);
