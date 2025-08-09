@@ -98,6 +98,8 @@ body {
     flex: 1;
 }
 
+.menu-item { cursor: pointer; user-select: none; }
+
 .menu-item {
     display: flex;
     align-items: center;

@@ -10,8 +10,9 @@ function initializeAdminSystem() {
     // 检查登录状态
     const isLoggedIn = localStorage.getItem('adminLoggedIn');
     if (!isLoggedIn) {
-        // 重定向到登录页面或显示登录模态框
-        showLoginModal();
+        // 未登录则跳转到后台登录页
+        window.location.href = 'admin-login.html';
+        return;
     }
     
     // 初始化侧边栏
