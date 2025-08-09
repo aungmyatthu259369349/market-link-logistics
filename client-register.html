@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>客户注册 - MARKET LINK LOGISTICS</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin-login.css" />
+</head>
+<body>
+  <div class="login-bg"></div>
+  <div class="login-wrapper">
+    <a class="brand" href="index.html#home" aria-label="返回首页">
+      <i class="fas fa-shipping-fast"></i>
+      <span>MARKET LINK LOGISTICS</span>
+    </a>
+
+    <div class="login-card">
+      <div class="card-header">
+        <h1>客户注册</h1>
+        <p>还没有账户？填写信息开始注册</p>
+      </div>
+
+      <form id="registerForm" class="login-form">
+        <div class="input-group">
+          <label>公司名称</label>
+          <div class="input">
+            <i class="fas fa-building"></i>
+            <input type="text" name="companyName" placeholder="公司名称" required />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>联系人姓名</label>
+          <div class="input">
+            <i class="fas fa-user"></i>
+            <input type="text" name="contactName" placeholder="联系人姓名" required />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>邮箱</label>
+          <div class="input">
+            <i class="fas fa-envelope"></i>
+            <input type="email" name="email" placeholder="email@example.com" required />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>电话</label>
+          <div class="input">
+            <i class="fas fa-phone"></i>
+            <input type="tel" name="phone" placeholder="联系方式" required />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>密码</label>
+          <div class="input">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="pwd" name="password" placeholder="设置密码" required />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>确认密码</label>
+          <div class="input">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="pwd2" name="confirmPassword" placeholder="再次输入密码" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <a class="back-home" href="client-login.html">已有账号？去登录</a>
+        </div>
+
+        <button id="regBtn" type="submit" class="btn-primary">
+          <span class="btn-text"><i class="fas fa-user-plus"></i> 注册</span>
+          <span class="btn-loading"><i class="fas fa-spinner fa-spin"></i> 提交中...</span>
+        </button>
+
+        <p id="errorMsg" class="error" style="display:none;"><i class="fas fa-circle-exclamation"></i> 注册失败</p>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    async function handleRegister(event) {
+      event.preventDefault();
+      const form = event.target;
+      const companyName = form.companyName.value.trim();
+      const contactName = form.contactName.value.trim();
+      const email = form.email.value.trim();
+      const phone = form.phone.value.trim();
+      const password = form.password.value;
+      const confirm = form.confirmPassword.value;
+      const btn = document.getElementById('regBtn');
+      const err = document.getElementById('errorMsg');
+
+      err.style.display = 'none';
+      if (password !== confirm) {
+        err.textContent = '两次输入的密码不一致';
+        err.style.display = 'block';
+        return;
+      }
+
+      btn.classList.add('loading');
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: email,
+            email,
+            password,
+            company_name: companyName,
+            contact_name: contactName,
+            phone
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          window.location.href = 'client-login.html';
+        } else {
+          err.textContent = data.error || '注册失败';
+          err.style.display = 'block';
+        }
+      } catch (e) {
+        err.textContent = '网络异常，请稍后再试';
+        err.style.display = 'block';
+      } finally {
+        btn.classList.remove('loading');
+      }
+    }
+
+    document.getElementById('registerForm').addEventListener('submit', handleRegister);
+  </script>
+</body>
+</html> 
