@@ -52,8 +52,9 @@ body {
 }
 
 .logo {
-    display: flex;
+    display: inline-flex;
     align-items: center;
+    gap: 10px;
     font-size: 1.5rem;
     font-weight: 800;
     background: var(--gradient-primary);
@@ -61,7 +62,9 @@ body {
     -webkit-text-fill-color: transparent;
     background-clip: text;
     margin-bottom: 1.5rem;
+    text-decoration: none;
 }
+.logo:hover { opacity: .9; }
 
 .logo i {
     margin-right: 10px;
