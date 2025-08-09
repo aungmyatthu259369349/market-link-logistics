@@ -8,8 +8,6 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 18
-      - key: PORT
-        value: 3000
       - key: JWT_SECRET
         value: marketlink_logistics_secret_key_2024
       - key: DB_PATH
