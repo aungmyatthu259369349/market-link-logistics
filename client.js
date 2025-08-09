@@ -87,18 +87,35 @@ function setupFormValidation() {
 }
 
 // 处理登录
-function handleLogin(event) {
+async function handleLogin(event) {
     event.preventDefault();
     
     const formData = new FormData(event.target);
     const username = formData.get('username') || event.target.querySelector('input[type="text"]').value;
     const password = formData.get('password') || event.target.querySelector('input[type="password"]').value;
     
-    // 模拟登录验证
-    if (username && password) {
-        // 模拟成功登录
+    if (!username || !password) {
+        showNotification('请填写用户名和密码', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            // 保存登录信息
         localStorage.setItem('clientLoggedIn', 'true');
-        localStorage.setItem('clientUsername', username);
+            localStorage.setItem('clientUsername', data.user.username);
+            localStorage.setItem('clientToken', data.token);
+            localStorage.setItem('clientUser', JSON.stringify(data.user));
         
         showNotification('登录成功！', 'success');
         showDashboard();
@@ -106,15 +123,19 @@ function handleLogin(event) {
         // 更新用户名显示
         const userNameElement = document.getElementById('userName');
         if (userNameElement) {
-            userNameElement.textContent = username;
+                userNameElement.textContent = data.user.username;
+            }
+        } else {
+            showNotification(data.error || '登录失败', 'error');
         }
-    } else {
-        showNotification('请填写用户名和密码', 'error');
+    } catch (error) {
+        console.error('登录失败:', error);
+        showNotification('登录失败，请检查网络连接', 'error');
     }
 }
 
 // 处理注册
-function handleRegister(event) {
+async function handleRegister(event) {
     event.preventDefault();
     
     const formData = new FormData(event.target);
@@ -131,12 +152,38 @@ function handleRegister(event) {
         return;
     }
     
-    if (companyName && contactName && email && phone && password) {
-        // 模拟注册成功
+    if (!companyName || !contactName || !email || !phone || !password) {
+        showNotification('请填写所有必填信息', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: email, // 使用邮箱作为用户名
+                email,
+                password,
+                company_name: companyName,
+                contact_name: contactName,
+                phone
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
         showNotification('注册成功！请登录', 'success');
         showTab('login');
     } else {
-        showNotification('请填写所有必填信息', 'error');
+            showNotification(data.error || '注册失败', 'error');
+        }
+    } catch (error) {
+        console.error('注册失败:', error);
+        showNotification('注册失败，请检查网络连接', 'error');
     }
 }
 

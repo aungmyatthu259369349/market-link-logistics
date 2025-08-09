@@ -1,0 +1,14 @@
+# dependencies
+node_modules/
+
+# environment
+.env
+
+# logs
+npm-debug.log*
+
+# macOS
+.DS_Store
+
+# local db file
+/database/logistics.db

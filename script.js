@@ -92,7 +92,7 @@ function scrollToSection(sectionId) {
 }
 
 // 包裹跟踪功能
-function trackPackage() {
+async function trackPackage() {
     const trackingNumber = document.getElementById('trackingNumber').value;
     const resultDiv = document.getElementById('trackingResult');
 
@@ -101,47 +101,33 @@ function trackPackage() {
         return;
     }
 
-    // 模拟跟踪结果
-    const mockResults = {
-        'ML123456789': {
-            status: '运输中',
-            location: '北京市朝阳区配送中心',
-            estimatedDelivery: '2024-01-15',
-            updates: [
-                { time: '2024-01-13 14:30', status: '包裹已到达北京市朝阳区配送中心' },
-                { time: '2024-01-12 16:45', status: '包裹正在运输途中' },
-                { time: '2024-01-11 09:20', status: '包裹已从上海仓库发出' }
-            ]
-        },
-        'ML987654321': {
-            status: '已送达',
-            location: '收件人已签收',
-            estimatedDelivery: '2024-01-10',
-            updates: [
-                { time: '2024-01-10 15:30', status: '包裹已送达，收件人已签收' },
-                { time: '2024-01-10 09:15', status: '包裹正在派送中' },
-                { time: '2024-01-09 18:20', status: '包裹已到达目的地配送中心' }
-            ]
-        }
-    };
+    try {
+        // 显示加载状态
+        resultDiv.innerHTML = '<p style="color: var(--primary-color);">正在查询跟踪信息...</p>';
+        
+        const response = await fetch(`/api/tracking/${trackingNumber}`);
+        const data = await response.json();
 
-    const result = mockResults[trackingNumber];
-    if (result) {
+        if (response.ok) {
         let html = `
             <div class="tracking-info">
                 <h3 style="color: var(--primary-color); margin-bottom: 1.5rem; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);">跟踪结果</h3>
                 <div class="tracking-details" style="margin-bottom: 2rem;">
-                    <p><strong style="color: var(--primary-color);">跟踪号:</strong> <span style="color: var(--text-primary);">${trackingNumber}</span></p>
-                    <p><strong style="color: var(--primary-color);">状态:</strong> <span style="color: var(--primary-color); text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);">${result.status}</span></p>
-                    <p><strong style="color: var(--primary-color);">当前位置:</strong> <span style="color: var(--text-primary);">${result.location}</span></p>
-                    <p><strong style="color: var(--primary-color);">预计送达:</strong> <span style="color: var(--text-primary);">${result.estimatedDelivery}</span></p>
+                        <p><strong style="color: var(--primary-color);">跟踪号:</strong> <span style="color: var(--text-primary);">${data.tracking_number}</span></p>
+                        <p><strong style="color: var(--primary-color);">状态:</strong> <span style="color: var(--primary-color); text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);">${data.status}</span></p>
+                        <p><strong style="color: var(--primary-color);">当前位置:</strong> <span style="color: var(--text-primary);">${data.location}</span></p>
+                        <p><strong style="color: var(--primary-color);">预计送达:</strong> <span style="color: var(--text-primary);">${data.estimated_delivery}</span></p>
                 </div>
+            `;
+            
+            if (data.updates && data.updates.length > 0) {
+                html += `
                 <div class="tracking-updates">
                     <h4 style="color: var(--primary-color); margin-bottom: 1rem;">运输更新</h4>
                     <div class="updates-list">
         `;
         
-        result.updates.forEach((update, index) => {
+                data.updates.forEach((update, index) => {
             html += `
                 <div class="update-item" style="
                     padding: 1rem;
@@ -152,22 +138,30 @@ function trackPackage() {
                     animation: slideIn 0.5s ease ${index * 0.1}s both;
                 ">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: var(--text-secondary); font-size: 0.9rem;">${update.time}</span>
+                                <span style="color: var(--text-secondary); font-size: 0.9rem;">${update.update_time}</span>
                         <span style="color: var(--text-primary);">${update.status}</span>
                     </div>
+                            ${update.location ? `<p style="color: var(--text-secondary); margin-top: 0.5rem;">位置: ${update.location}</p>` : ''}
                 </div>
             `;
         });
 
         html += '</div></div>';
+            }
+            
+            html += '</div>';
         resultDiv.innerHTML = html;
     } else {
-        resultDiv.innerHTML = '<p style="color: #ff6b35; text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);">未找到该跟踪号，请检查后重试</p>';
+            resultDiv.innerHTML = `<p style="color: #ff6b35; text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);">${data.error || '未找到该跟踪号，请检查后重试'}</p>`;
+        }
+    } catch (error) {
+        console.error('跟踪查询失败:', error);
+        resultDiv.innerHTML = '<p style="color: #ff6b35; text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);">查询失败，请检查网络连接</p>';
     }
 }
 
 // 价格计算功能
-function calculatePrice() {
+async function calculatePrice() {
     const origin = document.getElementById('origin').value;
     const destination = document.getElementById('destination').value;
     const weight = parseFloat(document.getElementById('weight').value);
@@ -179,24 +173,26 @@ function calculatePrice() {
         return;
     }
 
-    // 模拟价格计算
-    let basePrice = weight * 2; // 基础价格：每公斤2元
-    let serviceMultiplier = 1;
+    try {
+        // 显示加载状态
+        resultDiv.innerHTML = '<p style="color: var(--primary-color);">正在计算运费...</p>';
+        
+        const response = await fetch('/api/calculate-price', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                origin,
+                destination,
+                weight,
+                serviceType
+            })
+        });
 
-    switch (serviceType) {
-        case 'express':
-            serviceMultiplier = 1.5;
-            break;
-        case 'premium':
-            serviceMultiplier = 2;
-            break;
-        default:
-            serviceMultiplier = 1;
-    }
+        const data = await response.json();
 
-    const totalPrice = basePrice * serviceMultiplier;
-    const estimatedTime = serviceType === 'express' ? '1-2天' : serviceType === 'premium' ? '24小时内' : '3-5天';
-
+        if (response.ok) {
     resultDiv.innerHTML = `
         <div class="price-info" style="text-align: center;">
             <h3 style="color: var(--primary-color); margin-bottom: 2rem; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);">运费估算结果</h3>
@@ -207,11 +203,11 @@ function calculatePrice() {
                 border: 1px solid var(--border-glow);
             ">
                 <div style="display: grid; gap: 1rem; margin-bottom: 2rem;">
-                    <p><strong style="color: var(--primary-color);">起始地:</strong> <span style="color: var(--text-primary);">${origin}</span></p>
-                    <p><strong style="color: var(--primary-color);">目的地:</strong> <span style="color: var(--text-primary);">${destination}</span></p>
-                    <p><strong style="color: var(--primary-color);">重量:</strong> <span style="color: var(--text-primary);">${weight} kg</span></p>
-                    <p><strong style="color: var(--primary-color);">服务类型:</strong> <span style="color: var(--text-primary);">${serviceType === 'standard' ? '标准运输' : serviceType === 'express' ? '快速运输' : '优质运输'}</span></p>
-                    <p><strong style="color: var(--primary-color);">预计送达时间:</strong> <span style="color: var(--text-primary);">${estimatedTime}</span></p>
+                            <p><strong style="color: var(--primary-color);">起始地:</strong> <span style="color: var(--text-primary);">${data.origin}</span></p>
+                            <p><strong style="color: var(--primary-color);">目的地:</strong> <span style="color: var(--text-primary);">${data.destination}</span></p>
+                            <p><strong style="color: var(--primary-color);">重量:</strong> <span style="color: var(--text-primary);">${data.weight} kg</span></p>
+                            <p><strong style="color: var(--primary-color);">服务类型:</strong> <span style="color: var(--text-primary);">${data.serviceType === 'standard' ? '标准运输' : data.serviceType === 'express' ? '快速运输' : '优质运输'}</span></p>
+                            <p><strong style="color: var(--primary-color);">预计送达时间:</strong> <span style="color: var(--text-primary);">${data.estimatedTime}</span></p>
                 </div>
                 <div style="
                     background: var(--gradient-primary);
@@ -226,15 +222,22 @@ function calculatePrice() {
                         font-weight: 800;
                         color: var(--text-primary);
                         text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
-                    ">¥${totalPrice.toFixed(2)}</p>
+                            ">¥${data.totalPrice}</p>
                 </div>
             </div>
         </div>
     `;
+        } else {
+            resultDiv.innerHTML = `<p style="color: #ff6b35; text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);">${data.error || '计算失败，请重试'}</p>`;
+        }
+    } catch (error) {
+        console.error('价格计算失败:', error);
+        resultDiv.innerHTML = '<p style="color: #ff6b35; text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);">计算失败，请检查网络连接</p>';
+    }
 }
 
 // 联系表单提交
-document.getElementById('contactForm').addEventListener('submit', function(e) {
+document.getElementById('contactForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     // 获取表单数据
@@ -244,9 +247,32 @@ document.getElementById('contactForm').addEventListener('submit', function(e) {
     const phone = this.querySelector('input[type="tel"]').value;
     const message = this.querySelector('textarea').value;
 
-    // 模拟表单提交
+    try {
+        const response = await fetch('/api/contact', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name,
+                email,
+                phone,
+                message
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
     showNotification(`感谢您的留言，${name}！我们将尽快回复您。`, 'success');
     this.reset();
+        } else {
+            showNotification(data.error || '提交失败，请重试', 'error');
+        }
+    } catch (error) {
+        console.error('联系表单提交失败:', error);
+        showNotification('提交失败，请检查网络连接', 'error');
+    }
 });
 
 // 显示通知

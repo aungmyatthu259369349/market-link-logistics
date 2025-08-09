@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: marketlinklogistics
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run init-db
+    startCommand: node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        value: marketlink_logistics_secret_key_2024
+      - key: DB_PATH
+        value: ./database/logistics.db
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        value: admin123
+      - key: ADMIN_EMAIL
+        value: admin@marketlinklogistics.com 
