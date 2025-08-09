@@ -59,15 +59,34 @@ app.post('/api/auth/login', (req, res) => {
 
     db.get('SELECT * FROM users WHERE username = ? OR email = ?', [username, username], async (err, user) => {
         if (err) {
+            console.error('登录查询数据库失败:', err);
+            // 应急兜底：允许使用环境管理员账户直接登录
+            if (username === config.ADMIN.USERNAME && password === config.ADMIN.PASSWORD) {
+                const fallbackUser = { id: 0, username, email: config.ADMIN.EMAIL, role: 'admin' };
+                const token = jwt.sign({ id: 0, username, role: 'admin' }, config.JWT_SECRET, { expiresIn: '24h' });
+                return res.json({ success: true, token, user: fallbackUser });
+            }
             return res.status(500).json({ error: '服务器错误' });
         }
 
         if (!user) {
+            // 支持环境管理员应急登录
+            if (username === config.ADMIN.USERNAME && password === config.ADMIN.PASSWORD) {
+                const fallbackUser = { id: 0, username, email: config.ADMIN.EMAIL, role: 'admin' };
+                const token = jwt.sign({ id: 0, username, role: 'admin' }, config.JWT_SECRET, { expiresIn: '24h' });
+                return res.json({ success: true, token, user: fallbackUser });
+            }
             return res.status(401).json({ error: '用户名或密码错误' });
         }
 
-        const validPassword = await bcrypt.compare(password, user.password);
+        const validPassword = await bcrypt.compare(password, user.password).catch(() => false);
         if (!validPassword) {
+            // 支持环境管理员应急登录
+            if (username === config.ADMIN.USERNAME && password === config.ADMIN.PASSWORD) {
+                const fallbackUser = { id: user.id, username: user.username, email: user.email, role: user.role };
+                const token = jwt.sign({ id: fallbackUser.id, username: fallbackUser.username, role: fallbackUser.role }, config.JWT_SECRET, { expiresIn: '24h' });
+                return res.json({ success: true, token, user: fallbackUser });
+            }
             return res.status(401).json({ error: '用户名或密码错误' });
         }
 
