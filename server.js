@@ -302,6 +302,51 @@ app.post('/api/auth/reset/:token', async (req, res) => {
   });
 });
 
+// 详情接口
+app.get('/api/admin/inbound/:inboundNumber', authenticateToken, requireAdmin, (req, res) => {
+  const id = req.params.inboundNumber;
+  const sql = `SELECT ir.*, p.name as product_name, p.sku FROM inbound_records ir LEFT JOIN products p ON p.id = ir.product_id WHERE ir.inbound_number = ?`;
+  db.get(sql, [id], (err, row) => {
+    if (err) return res.status(500).json({ error: '服务器错误' });
+    if (!row) return res.status(404).json({ error: '未找到记录' });
+    res.json(row);
+  });
+});
+
+app.get('/api/admin/outbound/:outboundNumber', authenticateToken, requireAdmin, (req, res) => {
+  const id = req.params.outboundNumber;
+  const sql = `SELECT ob.*, p.name as product_name, p.sku FROM outbound_records ob LEFT JOIN products p ON p.id = ob.product_id WHERE ob.outbound_number = ?`;
+  db.get(sql, [id], (err, row) => {
+    if (err) return res.status(500).json({ error: '服务器错误' });
+    if (!row) return res.status(404).json({ error: '未找到记录' });
+    res.json(row);
+  });
+});
+
+app.get('/api/admin/orders/:orderNumber', authenticateToken, requireAdmin, (req, res) => {
+  const id = req.params.orderNumber;
+  const sql = `SELECT * FROM orders WHERE order_number = ?`;
+  db.get(sql, [id], (err, order) => {
+    if (err) return res.status(500).json({ error: '服务器错误' });
+    if (!order) return res.status(404).json({ error: '未找到订单' });
+    db.all(`SELECT * FROM order_items WHERE order_id = ?`, [order.id], (e2, items) => {
+      if (e2) items = [];
+      res.json({ order, items: items || [] });
+    });
+  });
+});
+
+app.get('/api/admin/inventory/:sku', authenticateToken, requireAdmin, (req, res) => {
+  const sku = req.params.sku;
+  const sql = `SELECT p.*, i.current_stock, i.available_stock, i.reserved_stock, i.last_updated
+               FROM products p LEFT JOIN inventory i ON p.id = i.product_id WHERE p.sku = ?`;
+  db.get(sql, [sku], (err, row) => {
+    if (err) return res.status(500).json({ error: '服务器错误' });
+    if (!row) return res.status(404).json({ error: '未找到商品' });
+    res.json(row);
+  });
+});
+
 // 静态页面
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/client', (req, res) => res.sendFile(path.join(__dirname, 'client.html')));

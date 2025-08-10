@@ -704,9 +704,21 @@ function authHeader(){
 // dashboard默认已有
 // 其它tab在切换时调用loadTabData，会触发上述加载
 // 查看入库详情
-function viewInbound(id) {
-    console.log('查看入库详情:', id);
-    // 实现查看详情逻辑
+function viewInbound(no){
+  fetch(`/api/admin/inbound/${encodeURIComponent(no)}`, { headers: authHeader() })
+    .then(r=>r.json()).then(d=>{
+      const html = `
+      <div class="detail">
+        <p><strong>入库单号:</strong> ${d.inbound_number||''}</p>
+        <p><strong>供应商:</strong> ${d.supplier||''}</p>
+        <p><strong>商品:</strong> ${d.product_name||''} (${d.sku||''})</p>
+        <p><strong>数量:</strong> ${d.quantity||''}</p>
+        <p><strong>状态:</strong> ${d.status||''}</p>
+        <p><strong>创建时间:</strong> ${d.created_at||''}</p>
+      </div>`;
+      document.getElementById('modal-title').textContent = '入库详情';
+      document.getElementById('modal-body').innerHTML = html; document.getElementById('modal').style.display='block';
+    });
 }
 
 // 编辑入库
@@ -716,9 +728,21 @@ function editInbound(id) {
 }
 
 // 查看出库详情
-function viewOutbound(id) {
-    console.log('查看出库详情:', id);
-    // 实现查看详情逻辑
+function viewOutbound(no){
+  fetch(`/api/admin/outbound/${encodeURIComponent(no)}`, { headers: authHeader() })
+    .then(r=>r.json()).then(d=>{
+      const html = `
+      <div class="detail">
+        <p><strong>出库单号:</strong> ${d.outbound_number||''}</p>
+        <p><strong>客户:</strong> ${d.customer||''}</p>
+        <p><strong>商品:</strong> ${d.product_name||''} (${d.sku||''})</p>
+        <p><strong>数量:</strong> ${d.quantity||''}</p>
+        <p><strong>状态:</strong> ${d.status||''}</p>
+        <p><strong>创建时间:</strong> ${d.created_at||''}</p>
+      </div>`;
+      document.getElementById('modal-title').textContent = '出库详情';
+      document.getElementById('modal-body').innerHTML = html; document.getElementById('modal').style.display='block';
+    });
 }
 
 // 编辑出库
@@ -728,9 +752,21 @@ function editOutbound(id) {
 }
 
 // 查看库存详情
-function viewInventory(id) {
-    console.log('查看库存详情:', id);
-    // 实现查看详情逻辑
+function viewInventory(sku){
+  fetch(`/api/admin/inventory/${encodeURIComponent(sku)}`, { headers: authHeader() })
+    .then(r=>r.json()).then(d=>{
+      const html = `
+      <div class="detail">
+        <p><strong>SKU:</strong> ${d.sku||''}</p>
+        <p><strong>名称:</strong> ${d.name||''}</p>
+        <p><strong>分类:</strong> ${d.category||''}</p>
+        <p><strong>当前库存:</strong> ${d.current_stock||0}</p>
+        <p><strong>安全库存:</strong> ${d.safety_stock||0}</p>
+        <p><strong>更新时间:</strong> ${d.last_updated||''}</p>
+      </div>`;
+      document.getElementById('modal-title').textContent = '库存详情';
+      document.getElementById('modal-body').innerHTML = html; document.getElementById('modal').style.display='block';
+    });
 }
 
 // 编辑库存
@@ -740,9 +776,23 @@ function editInventory(id) {
 }
 
 // 查看订单详情
-function viewOrder(id) {
-    console.log('查看订单详情:', id);
-    // 实现查看详情逻辑
+function viewOrder(no){
+  fetch(`/api/admin/orders/${encodeURIComponent(no)}`, { headers: authHeader() })
+    .then(r=>r.json()).then(d=>{
+      const order = d.order || {}; const items = d.items||[];
+      const html = `
+      <div class="detail">
+        <p><strong>订单号:</strong> ${order.order_number||''}</p>
+        <p><strong>客户:</strong> ${order.customer_name||''}</p>
+        <p><strong>状态:</strong> ${order.status||''}</p>
+        <p><strong>金额:</strong> ¥${order.total_amount||0}</p>
+        <p><strong>创建时间:</strong> ${order.created_at||''}</p>
+        <h4>订单明细</h4>
+        <ul>${items.map(i=>`<li>${i.product_id} x ${i.quantity} = ${i.total_price||''}</li>`).join('')}</ul>
+      </div>`;
+      document.getElementById('modal-title').textContent = '订单详情';
+      document.getElementById('modal-body').innerHTML = html; document.getElementById('modal').style.display='block';
+    });
 }
 
 // 编辑订单
