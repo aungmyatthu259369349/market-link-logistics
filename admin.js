@@ -874,3 +874,26 @@ function onTabActivated(tabId){
 // Hook到switchTab
 const _switchTab = switchTab;
 switchTab = function(tabId){ _switchTab(tabId); onTabActivated(tabId); }; 
+
+// 会话超时提醒与自动续期
+let sessionTimer, warnTimer;
+function scheduleSessionCheck(){
+  clearInterval(sessionTimer); clearTimeout(warnTimer);
+  sessionTimer = setInterval(async ()=>{
+    try{
+      const info = await fetch('/api/auth/session-info', { credentials:'include' }).then(r=>r.json());
+      const warnMs = 5*60*1000; // 提前5分钟提醒
+      if (info.remainingMs <= warnMs){
+        // 弹出提醒（避免重复，可简单用一次性）
+        if (!window.__sessionWarned){ window.__sessionWarned=true; alert('您的登录即将超时，系统将自动为您续期'); }
+        // 自动续期
+        await fetch('/api/auth/renew', { method:'POST', credentials:'include' });
+        window.__sessionWarned=false; // 续期后重置
+      }
+    }catch{}
+  }, 60*1000); // 每分钟检查一次
+}
+
+// 初始化时与每次tab切换后调用
+scheduleSessionCheck();
+const __origSwitchTab = switchTab; switchTab = function(tabId){ __origSwitchTab(tabId); scheduleSessionCheck(); }; 

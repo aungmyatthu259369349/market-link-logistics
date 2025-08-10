@@ -36,8 +36,25 @@ app.use(session({
   secret: config.SESSION_SECRET || 'logistics_session_secret',
   resave: false,
   saveUninitialized: false,
-  cookie: { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 }
+  rolling: true,
+  cookie: { httpOnly: true, secure: false, sameSite: 'lax', maxAge: (parseInt(process.env.SESSION_MAX_AGE_MINUTES || '30',10))*60*1000 }
 }));
+
+// 登录用户活动时间
+app.use((req,res,next)=>{ if (req.session && req.session.user) { req.session.lastSeen = Date.now(); } next(); });
+
+// 会话信息/续期
+app.get('/api/auth/session-info', (req, res) => {
+  const maxAgeMs = (parseInt(process.env.SESSION_MAX_AGE_MINUTES || '30',10))*60*1000;
+  const last = (req.session && req.session.lastSeen) ? req.session.lastSeen : Date.now();
+  const remainingMs = Math.max(0, maxAgeMs - (Date.now() - last));
+  res.json({ remainingMs, maxAgeMs });
+});
+app.post('/api/auth/renew', (req, res) => {
+  if (!req.session || !req.session.user) return res.status(401).json({ error: '未登录' });
+  req.session.lastSeen = Date.now();
+  res.json({ success: true });
+});
 
 // 静态
 app.use(express.static('./', { maxAge: '7d', etag: true }));
