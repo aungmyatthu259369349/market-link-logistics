@@ -580,14 +580,15 @@ let inboundPage = 1, inboundPageSize = 10;
 let inboundSort = 'created_at DESC';
 function setInboundPageSize(v){ inboundPageSize = parseInt(v,10)||10; filterInbound(1); }
 function sortInbound(field){ inboundSort = field + (inboundSort.includes('DESC')?' ASC':' DESC'); filterInbound(); }
+function fetchOpts(){ return { credentials: 'include' }; }
+function authHeader(){ return {}; }
 function loadInboundData(){
   const search = document.getElementById('inbound-search')?.value || '';
   const status = document.getElementById('inbound-status-filter')?.value || '';
   const startDate = document.getElementById('inbound-date-start')?.value || '';
   const endDate = document.getElementById('inbound-date-end')?.value || '';
   const qs = new URLSearchParams({ page: inboundPage, pageSize: inboundPageSize, search, status, startDate, endDate, sort: inboundSort }).toString();
-  fetch(`/api/admin/inbound?${qs}`, { headers: authHeader() })
-    .then(r=>r.json()).then(d=>{
+  fetch(`/api/admin/inbound?${qs}`, fetchOpts()).then(r=>r.json()).then(d=>{
       const tbody = document.getElementById('inbound-table-body');
       tbody.innerHTML = (d.rows||[]).map(r => `
         <tr>
@@ -616,8 +617,7 @@ function loadOutboundData(){
   const startDate = document.getElementById('outbound-date-start')?.value || '';
   const endDate = document.getElementById('outbound-date-end')?.value || '';
   const qs = new URLSearchParams({ page: outboundPage, pageSize: outboundPageSize, search, status, startDate, endDate, sort: outboundSort }).toString();
-  fetch(`/api/admin/outbound?${qs}`, { headers: authHeader() })
-    .then(r=>r.json()).then(d=>{
+  fetch(`/api/admin/outbound?${qs}`, fetchOpts()).then(r=>r.json()).then(d=>{
       const tbody = document.getElementById('outbound-table-body');
       tbody.innerHTML = (d.rows||[]).map(r => `
         <tr>
@@ -644,8 +644,7 @@ function loadInventoryData(){
   const search = document.getElementById('inventory-search')?.value || '';
   const category = document.getElementById('inventory-category-filter')?.value || '';
   const qs = new URLSearchParams({ page: inventoryPage, pageSize: inventoryPageSize, search, category, sort: inventorySort }).toString();
-  fetch(`/api/admin/inventory?${qs}`, { headers: authHeader() })
-    .then(r=>r.json()).then(d=>{
+  fetch(`/api/admin/inventory?${qs}`, fetchOpts()).then(r=>r.json()).then(d=>{
       const tbody = document.getElementById('inventory-table-body');
       tbody.innerHTML = (d.rows||[]).map(r => `
         <tr>
@@ -675,8 +674,7 @@ function loadOrdersData(){
   const startDate = document.getElementById('order-date-start')?.value || '';
   const endDate = document.getElementById('order-date-end')?.value || '';
   const qs = new URLSearchParams({ page: ordersPage, pageSize: ordersPageSize, search, status, startDate, endDate, sort: ordersSort }).toString();
-  fetch(`/api/admin/orders?${qs}`, { headers: authHeader() })
-    .then(r=>r.json()).then(d=>{
+  fetch(`/api/admin/orders?${qs}`, fetchOpts()).then(r=>r.json()).then(d=>{
       const tbody = document.getElementById('orders-table-body');
       tbody.innerHTML = (d.rows||[]).map(r => `
         <tr>
@@ -695,113 +693,6 @@ function loadOrdersData(){
     });
 }
 
-function authHeader(){
-  const token = localStorage.getItem('adminToken');
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
-}
-
-// 初始化加载默认tab的数据
-// dashboard默认已有
-// 其它tab在切换时调用loadTabData，会触发上述加载
-// 查看入库详情
-function viewInbound(no){
-  fetch(`/api/admin/inbound/${encodeURIComponent(no)}`, { headers: authHeader() })
-    .then(r=>r.json()).then(d=>{
-      const html = `
-      <div class="detail">
-        <p><strong>入库单号:</strong> ${d.inbound_number||''}</p>
-        <p><strong>供应商:</strong> ${d.supplier||''}</p>
-        <p><strong>商品:</strong> ${d.product_name||''} (${d.sku||''})</p>
-        <p><strong>数量:</strong> ${d.quantity||''}</p>
-        <p><strong>状态:</strong> ${d.status||''}</p>
-        <p><strong>创建时间:</strong> ${d.created_at||''}</p>
-      </div>`;
-      document.getElementById('modal-title').textContent = '入库详情';
-      document.getElementById('modal-body').innerHTML = html; document.getElementById('modal').style.display='block';
-    });
-}
-
-// 编辑入库
-function editInbound(id) {
-    console.log('编辑入库:', id);
-    // 实现编辑逻辑
-}
-
-// 查看出库详情
-function viewOutbound(no){
-  fetch(`/api/admin/outbound/${encodeURIComponent(no)}`, { headers: authHeader() })
-    .then(r=>r.json()).then(d=>{
-      const html = `
-      <div class="detail">
-        <p><strong>出库单号:</strong> ${d.outbound_number||''}</p>
-        <p><strong>客户:</strong> ${d.customer||''}</p>
-        <p><strong>商品:</strong> ${d.product_name||''} (${d.sku||''})</p>
-        <p><strong>数量:</strong> ${d.quantity||''}</p>
-        <p><strong>状态:</strong> ${d.status||''}</p>
-        <p><strong>创建时间:</strong> ${d.created_at||''}</p>
-      </div>`;
-      document.getElementById('modal-title').textContent = '出库详情';
-      document.getElementById('modal-body').innerHTML = html; document.getElementById('modal').style.display='block';
-    });
-}
-
-// 编辑出库
-function editOutbound(id) {
-    console.log('编辑出库:', id);
-    // 实现编辑逻辑
-}
-
-// 查看库存详情
-function viewInventory(sku){
-  fetch(`/api/admin/inventory/${encodeURIComponent(sku)}`, { headers: authHeader() })
-    .then(r=>r.json()).then(d=>{
-      const html = `
-      <div class="detail">
-        <p><strong>SKU:</strong> ${d.sku||''}</p>
-        <p><strong>名称:</strong> ${d.name||''}</p>
-        <p><strong>分类:</strong> ${d.category||''}</p>
-        <p><strong>当前库存:</strong> ${d.current_stock||0}</p>
-        <p><strong>安全库存:</strong> ${d.safety_stock||0}</p>
-        <p><strong>更新时间:</strong> ${d.last_updated||''}</p>
-      </div>`;
-      document.getElementById('modal-title').textContent = '库存详情';
-      document.getElementById('modal-body').innerHTML = html; document.getElementById('modal').style.display='block';
-    });
-}
-
-// 编辑库存
-function editInventory(id) {
-    console.log('编辑库存:', id);
-    // 实现编辑逻辑
-}
-
-// 查看订单详情
-function viewOrder(no){
-  fetch(`/api/admin/orders/${encodeURIComponent(no)}`, { headers: authHeader() })
-    .then(r=>r.json()).then(d=>{
-      const order = d.order || {}; const items = d.items||[];
-      const html = `
-      <div class="detail">
-        <p><strong>订单号:</strong> ${order.order_number||''}</p>
-        <p><strong>客户:</strong> ${order.customer_name||''}</p>
-        <p><strong>状态:</strong> ${order.status||''}</p>
-        <p><strong>金额:</strong> ¥${order.total_amount||0}</p>
-        <p><strong>创建时间:</strong> ${order.created_at||''}</p>
-        <h4>订单明细</h4>
-        <ul>${items.map(i=>`<li>${i.product_id} x ${i.quantity} = ${i.total_price||''}</li>`).join('')}</ul>
-      </div>`;
-      document.getElementById('modal-title').textContent = '订单详情';
-      document.getElementById('modal-body').innerHTML = html; document.getElementById('modal').style.display='block';
-    });
-}
-
-// 编辑订单
-function editOrder(id) {
-    console.log('编辑订单:', id);
-    // 实现编辑逻辑
-}
-
-// 导出报表
 function exportReport() {
     console.log('导出报表');
     showNotification('报表导出中...', 'info');
@@ -922,13 +813,13 @@ function batchConfirm(message){ return new Promise((resolve)=>{ if (confirm(mess
 async function batchUpdateStatus(prefix, url, status){
   const ids = getSelectedIds(prefix); if (!ids.length) return alert('请先选择行');
   const ok = await batchConfirm(`确定将选中 ${ids.length} 条记录状态更新为 ${status} 吗？`); if (!ok) return;
-  fetch(url, { method:'POST', headers: { 'Content-Type':'application/json', ...authHeader() }, body: JSON.stringify({ ids, status })})
+  fetch(url, { method:'POST', credentials:'include', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ ids, status })})
     .then(r=>r.json()).then(d=>{ if (!d.success) return alert(d.error||'更新失败'); alert('更新成功'); if(prefix==='inbound') loadInboundData(); if(prefix==='outbound') loadOutboundData(); if(prefix==='orders') loadOrdersData(); });
 }
 async function batchDelete(prefix, url){
   const ids = getSelectedIds(prefix); if (!ids.length) return alert('请先选择行');
   const ok = await batchConfirm(`确定删除选中 ${ids.length} 条记录吗？此操作不可撤销！`); if (!ok) return;
-  fetch(url, { method:'POST', headers: { 'Content-Type':'application/json', ...authHeader() }, body: JSON.stringify({ ids })})
+  fetch(url, { method:'POST', credentials:'include', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ ids })})
     .then(r=>r.json()).then(d=>{ if (!d.success) return alert(d.error||'删除失败'); alert('删除成功'); if(prefix==='inbound') loadInboundData(); if(prefix==='outbound') loadOutboundData(); if(prefix==='orders') loadOrdersData(); });
 }
 
