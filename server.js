@@ -1,12 +1,14 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const nodemailer = require('nodemailer');
 const config = require('./config');
 const db = require('./db-adapter');
 
@@ -16,80 +18,105 @@ const app = express();
 app.use(helmet());
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
 app.use(limiter);
-
-// 压缩
 app.use(compression());
 
-// CORS 白名单
+// CORS（生产建议填写你的域名）
 const whitelist = (process.env.ORIGIN_WHITELIST || '').split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin || whitelist.length === 0 || whitelist.includes(origin)) return cb(null, true);
-    return cb(new Error('Not allowed by CORS'));
-  }
+  origin: (origin, cb) => { if (!origin || whitelist.length === 0 || whitelist.includes(origin)) return cb(null, true); return cb(new Error('Not allowed by CORS')); },
+  credentials: true
 }));
 
 // 解析
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(session({
+  name: 'mlsid',
+  secret: config.SESSION_SECRET || 'logistics_session_secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 }
+}));
 
-// 静态资源（带缓存）
+// 静态
 app.use(express.static('./', { maxAge: '7d', etag: true }));
 
-// 健康检查 & 版本
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() });
-});
-app.get('/api/version', (req, res) => {
-  res.json({ version: process.env.RENDER_GIT_COMMIT || 'dev', driver: db.isPg ? 'pg' : 'sqlite' });
-});
+// 健康与版本
+app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+app.get('/api/version', (req, res) => res.json({ version: process.env.RENDER_GIT_COMMIT || 'dev', driver: db.isPg ? 'pg' : 'sqlite' }));
 
-// 认证中间件
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.status(401).json({ error: '需要认证令牌' });
-  jwt.verify(token, config.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: '无效的令牌' });
-    req.user = user; next();
-  });
-};
-const requireAdmin = (req, res, next) => { if (req.user.role !== 'admin') return res.status(403).json({ error: '需要管理员权限' }); next(); };
+// 会话认证
+function requireAuth(req, res, next){ if (req.session && req.session.user) return next(); return res.status(401).json({ error: '未登录' }); }
+function requireAdmin(req, res, next){ if (req.session && req.session.user && req.session.user.role === 'admin') return next(); return res.status(403).json({ error: '需要管理员权限' }); }
 
-// 登录
+// 登录（Cookie Session）
 app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
-  if (username === config.ADMIN.USERNAME && password === config.ADMIN.PASSWORD) {
-    const adminUser = { id: 0, username, email: config.ADMIN.EMAIL, role: 'admin' };
-    const token = jwt.sign({ id: 0, username, role: 'admin' }, config.JWT_SECRET, { expiresIn: '24h' });
-    return res.json({ success: true, token, user: adminUser });
-  }
   db.get('SELECT * FROM users WHERE username = ? OR email = ?', [username, username], async (err, user) => {
     if (err) return res.status(500).json({ error: '服务器错误' });
     if (!user) return res.status(401).json({ error: '用户名或密码错误' });
-    const valid = await bcrypt.compare(password, user.password).catch(() => false);
+    const valid = await bcrypt.compare(password, user.password).catch(()=>false);
     if (!valid) return res.status(401).json({ error: '用户名或密码错误' });
-    const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, config.JWT_SECRET, { expiresIn: '24h' });
-    res.json({ success: true, token, user: { id: user.id, username: user.username, email: user.email, role: user.role, company_name: user.company_name, contact_name: user.contact_name } });
+    req.session.user = { id: user.id, username: user.username, email: user.email, role: user.role };
+    res.json({ success: true, user: req.session.user });
   });
 });
+app.post('/api/auth/logout', (req, res) => { req.session.destroy(()=>res.json({ success: true })); });
 
 // 注册
 app.post('/api/auth/register', async (req, res) => {
   const { username, email, password, company_name, contact_name, phone } = req.body;
   try {
     const hashed = await bcrypt.hash(password, 10);
-    const sql = 'INSERT INTO users (username, email, password, company_name, contact_name, phone) VALUES (?, ?, ?, ?, ?, ?)';
-    db.insert(sql, [username, email, hashed, company_name, contact_name, phone], (err) => {
-      if (err) {
-        if (/UNIQUE|duplicate/i.test(String(err.message))) return res.status(400).json({ error: '用户名或邮箱已存在' });
-        return res.status(500).json({ error: '注册失败' });
-      }
+    db.insert('INSERT INTO users (username, email, password, company_name, contact_name, phone) VALUES (?, ?, ?, ?, ?, ?)', [username, email, hashed, company_name, contact_name, phone], (err)=>{
+      if (err){ if(/UNIQUE|duplicate/i.test(String(err.message))) return res.status(400).json({ error: '用户名或邮箱已存在' }); return res.status(500).json({ error: '注册失败' }); }
       res.json({ success: true });
     });
-  } catch {
-    res.status(500).json({ error: '注册失败' });
-  }
+  } catch { res.status(500).json({ error: '注册失败' }); }
+});
+
+// 邮件发送器（重置密码使用）
+const transporter = nodemailer.createTransport({
+  host: process.env.MAIL_HOST || 'smtp.sendgrid.net',
+  port: parseInt(process.env.MAIL_PORT || '587', 10),
+  secure: false,
+  auth: { user: process.env.MAIL_USER || 'apikey', pass: process.env.MAIL_API_KEY || '' }
+});
+async function sendResetEmail(email, token){
+  if (!process.env.MAIL_FROM) return;
+  const url = `${process.env.PUBLIC_URL || ''}/reset.html?token=${encodeURIComponent(token)}`;
+  await transporter.sendMail({ from: process.env.MAIL_FROM, to: email, subject: '重置密码', html: `<p>点击链接重置密码：<a href="${url}">${url}</a>（1小时内有效）</p>` });
+}
+
+// 忘记密码/重置密码（使用会话独立）
+app.post('/api/auth/forgot', (req, res) => {
+  const { email } = req.body || {}; if (!email) return res.status(400).json({ error: '请输入邮箱' });
+  db.get('SELECT id FROM users WHERE email = ?', [email], (err, user) => {
+    if (err) return res.status(500).json({ error: '服务器错误' });
+    if (!user) return res.json({ success: true });
+    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    db.run('INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)', [user.id, token, expiresAt], async (e2) => {
+      if (e2) return res.status(500).json({ error: '服务器错误' });
+      try { await sendResetEmail(email, token); } catch {}
+      return res.json({ success: true });
+    });
+  });
+});
+app.post('/api/auth/reset/:token', async (req, res) => {
+  const { token } = req.params; const { password } = req.body || {};
+  if (!password || password.length < 6) return res.status(400).json({ error: '密码至少6位' });
+  db.get('SELECT user_id, expires_at FROM password_resets WHERE token = ?', [token], async (err, row) => {
+    if (err) return res.status(500).json({ error: '服务器错误' });
+    if (!row) return res.status(404).json({ error: '链接无效' });
+    if (new Date(row.expires_at).getTime() < Date.now()) return res.status(400).json({ error: '链接已过期' });
+    const hashed = await bcrypt.hash(password, 10);
+    db.run('UPDATE users SET password = ? WHERE id = ?', [hashed, row.user_id], (e2) => {
+      if (e2) return res.status(500).json({ error: '服务器错误' });
+      db.run('DELETE FROM password_resets WHERE token = ?', [token], () => res.json({ success: true }));
+    });
+  });
 });
 
 // 跟踪
@@ -118,8 +145,9 @@ app.post('/api/calculate-price', (req, res) => {
   res.json({ origin, destination, weight, serviceType, totalPrice: total.toFixed(2), estimatedTime: eta });
 });
 
-// 管理员统计
-app.get('/api/admin/stats', authenticateToken, requireAdmin, (req, res) => {
+// 后台接口（使用会话鉴权）
+// 示例：统计
+app.get('/api/admin/stats', requireAuth, requireAdmin, (req, res) => {
   const stats = {};
   db.get('SELECT SUM(current_stock) as total_inventory FROM inventory', [], (e, r) => {
     stats.totalInventory = r ? r.total_inventory || 0 : 0;
@@ -167,7 +195,7 @@ function sanitizeSort(input, whitelist, defaultSort){
 function buildInPlaceholders(arr){ return arr.map(()=>'?').join(','); }
 
 // 入库列表：分页/搜索/导出
-app.get('/api/admin/inbound', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/inbound', requireAuth, requireAdmin, (req, res) => {
   const { search = '', status = '', startDate = '', endDate = '', export: exp, sort, scope = '' } = req.query;
   const { page, pageSize, offset } = parsePagination(req);
   const where = []; const params = [];
@@ -193,7 +221,7 @@ app.get('/api/admin/inbound', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // 批量操作：入库
-app.post('/api/admin/inbound/batch-status', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/admin/inbound/batch-status', requireAuth, requireAdmin, (req, res) => {
   const { ids = [], status } = req.body || {};
   if (!ids.length || !status) return res.status(400).json({ error: '参数错误' });
   const placeholders = buildInPlaceholders(ids);
@@ -202,7 +230,7 @@ app.post('/api/admin/inbound/batch-status', authenticateToken, requireAdmin, (re
     res.json({ success: true });
   });
 });
-app.post('/api/admin/inbound/batch-delete', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/admin/inbound/batch-delete', requireAuth, requireAdmin, (req, res) => {
   const { ids = [] } = req.body || {};
   if (!ids.length) return res.status(400).json({ error: '参数错误' });
   const placeholders = buildInPlaceholders(ids);
@@ -213,7 +241,7 @@ app.post('/api/admin/inbound/batch-delete', authenticateToken, requireAdmin, (re
 });
 
 // 出库列表
-app.get('/api/admin/outbound', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/outbound', requireAuth, requireAdmin, (req, res) => {
   const { search = '', status = '', startDate = '', endDate = '', export: exp, sort, scope = '' } = req.query;
   const { page, pageSize, offset } = parsePagination(req);
   const where = []; const params = [];
@@ -239,7 +267,7 @@ app.get('/api/admin/outbound', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // 批量操作：出库
-app.post('/api/admin/outbound/batch-status', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/admin/outbound/batch-status', requireAuth, requireAdmin, (req, res) => {
   const { ids = [], status } = req.body || {};
   if (!ids.length || !status) return res.status(400).json({ error: '参数错误' });
   const placeholders = buildInPlaceholders(ids);
@@ -248,7 +276,7 @@ app.post('/api/admin/outbound/batch-status', authenticateToken, requireAdmin, (r
     res.json({ success: true });
   });
 });
-app.post('/api/admin/outbound/batch-delete', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/admin/outbound/batch-delete', requireAuth, requireAdmin, (req, res) => {
   const { ids = [] } = req.body || {};
   if (!ids.length) return res.status(400).json({ error: '参数错误' });
   const placeholders = buildInPlaceholders(ids);
@@ -259,7 +287,7 @@ app.post('/api/admin/outbound/batch-delete', authenticateToken, requireAdmin, (r
 });
 
 // 库存列表
-app.get('/api/admin/inventory', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/inventory', requireAuth, requireAdmin, (req, res) => {
   const { search = '', category = '', export: exp, sort, scope = '' } = req.query;
   const { page, pageSize, offset } = parsePagination(req);
   const where = []; const params = [];
@@ -284,7 +312,7 @@ app.get('/api/admin/inventory', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // 订单列表
-app.get('/api/admin/orders', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/orders', requireAuth, requireAdmin, (req, res) => {
   const { search = '', status = '', startDate = '', endDate = '', export: exp, sort, scope = '' } = req.query;
   const { page, pageSize, offset } = parsePagination(req);
   const where = []; const params = [];
@@ -310,7 +338,7 @@ app.get('/api/admin/orders', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // 批量操作：订单
-app.post('/api/admin/orders/batch-status', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/admin/orders/batch-status', requireAuth, requireAdmin, (req, res) => {
   const { ids = [], status } = req.body || {};
   if (!ids.length || !status) return res.status(400).json({ error: '参数错误' });
   const placeholders = buildInPlaceholders(ids);
@@ -319,7 +347,7 @@ app.post('/api/admin/orders/batch-status', authenticateToken, requireAdmin, (req
     res.json({ success: true });
   });
 });
-app.post('/api/admin/orders/batch-delete', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/admin/orders/batch-delete', requireAuth, requireAdmin, (req, res) => {
   const { ids = [] } = req.body || {};
   if (!ids.length) return res.status(400).json({ error: '参数错误' });
   const placeholders = buildInPlaceholders(ids);
@@ -329,47 +357,8 @@ app.post('/api/admin/orders/batch-delete', authenticateToken, requireAdmin, (req
   });
 });
 
-// 忘记密码/重置密码
-app.post('/api/auth/forgot', (req, res) => {
-  const { email } = req.body || {};
-  if (!email) return res.status(400).json({ error: '请输入邮箱' });
-  db.get('SELECT id FROM users WHERE email = ?', [email], (err, user) => {
-    if (err) return res.status(500).json({ error: '服务器错误' });
-    if (!user) return res.json({ success: true });
-    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-    db.run('INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)', [user.id, token, expiresAt], (e2) => {
-      if (e2) return res.status(500).json({ error: '服务器错误' });
-      return res.json({ success: true, token });
-    });
-  });
-});
-app.get('/api/auth/reset/:token', (req, res) => {
-  const { token } = req.params;
-  db.get('SELECT pr.user_id, pr.expires_at, u.email FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?', [token], (err, row) => {
-    if (err) return res.status(500).json({ error: '服务器错误' });
-    if (!row) return res.status(404).json({ error: '链接无效' });
-    if (new Date(row.expires_at).getTime() < Date.now()) return res.status(400).json({ error: '链接已过期' });
-    res.json({ success: true, email: row.email });
-  });
-});
-app.post('/api/auth/reset/:token', async (req, res) => {
-  const { token } = req.params; const { password } = req.body || {};
-  if (!password || password.length < 6) return res.status(400).json({ error: '密码至少6位' });
-  db.get('SELECT user_id, expires_at FROM password_resets WHERE token = ?', [token], async (err, row) => {
-    if (err) return res.status(500).json({ error: '服务器错误' });
-    if (!row) return res.status(404).json({ error: '链接无效' });
-    if (new Date(row.expires_at).getTime() < Date.now()) return res.status(400).json({ error: '链接已过期' });
-    const hashed = await bcrypt.hash(password, 10);
-    db.run('UPDATE users SET password = ? WHERE id = ?', [hashed, row.user_id], (e2) => {
-      if (e2) return res.status(500).json({ error: '服务器错误' });
-      db.run('DELETE FROM password_resets WHERE token = ?', [token], () => res.json({ success: true }));
-    });
-  });
-});
-
 // 详情接口
-app.get('/api/admin/inbound/:inboundNumber', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/inbound/:inboundNumber', requireAuth, requireAdmin, (req, res) => {
   const id = req.params.inboundNumber;
   const sql = `SELECT ir.*, p.name as product_name, p.sku FROM inbound_records ir LEFT JOIN products p ON p.id = ir.product_id WHERE ir.inbound_number = ?`;
   db.get(sql, [id], (err, row) => {
@@ -379,7 +368,7 @@ app.get('/api/admin/inbound/:inboundNumber', authenticateToken, requireAdmin, (r
   });
 });
 
-app.get('/api/admin/outbound/:outboundNumber', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/outbound/:outboundNumber', requireAuth, requireAdmin, (req, res) => {
   const id = req.params.outboundNumber;
   const sql = `SELECT ob.*, p.name as product_name, p.sku FROM outbound_records ob LEFT JOIN products p ON p.id = ob.product_id WHERE ob.outbound_number = ?`;
   db.get(sql, [id], (err, row) => {
@@ -389,7 +378,7 @@ app.get('/api/admin/outbound/:outboundNumber', authenticateToken, requireAdmin, 
   });
 });
 
-app.get('/api/admin/orders/:orderNumber', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/orders/:orderNumber', requireAuth, requireAdmin, (req, res) => {
   const id = req.params.orderNumber;
   const sql = `SELECT * FROM orders WHERE order_number = ?`;
   db.get(sql, [id], (err, order) => {
@@ -402,7 +391,7 @@ app.get('/api/admin/orders/:orderNumber', authenticateToken, requireAdmin, (req,
   });
 });
 
-app.get('/api/admin/inventory/:sku', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/inventory/:sku', requireAuth, requireAdmin, (req, res) => {
   const sku = req.params.sku;
   const sql = `SELECT p.*, i.current_stock, i.available_stock, i.reserved_stock, i.last_updated
                FROM products p LEFT JOIN inventory i ON p.id = i.product_id WHERE p.sku = ?`;
@@ -419,8 +408,5 @@ app.get('/client', (req, res) => res.sendFile(path.join(__dirname, 'client.html'
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 app.get('/admin-login', (req, res) => res.sendFile(path.join(__dirname, 'admin-login.html')));
 
-const PORT = config.PORT;
-const HOST = '0.0.0.0';
-app.listen(PORT, HOST, () => {
-  console.log(`服务器运行在 http://localhost:${PORT} (driver=${db.isPg ? 'pg' : 'sqlite'})`);
-}); 
+const PORT = config.PORT; const HOST = '0.0.0.0';
+app.listen(PORT, HOST, () => { console.log(`服务器运行在 http://localhost:${PORT} (driver=${db.isPg ? 'pg' : 'sqlite'})`); }); 

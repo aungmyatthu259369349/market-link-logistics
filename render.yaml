@@ -25,6 +25,20 @@ services:
           type: pserv
           name: marketlink-postgres
           property: connectionString
+      - key: ORIGIN_WHITELIST
+        value: "https://your-domain.com,https://your-onrender-url.onrender.com"
+      - key: PUBLIC_URL
+        value: "https://your-domain.com"
+      - key: MAIL_HOST
+        value: smtp.sendgrid.net
+      - key: MAIL_PORT
+        value: 587
+      - key: MAIL_USER
+        value: apikey
+      - key: MAIL_API_KEY
+        value: ""
+      - key: MAIL_FROM
+        value: "no-reply@your-domain.com"
     disks:
       - name: data
         mountPath: /data
