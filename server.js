@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 const config = require('./config');
 
 const app = express();
@@ -16,11 +17,24 @@ app.use(helmet());
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
 app.use(limiter);
 
-// 中间件设置
-app.use(cors());
+// 压缩
+app.use(compression());
+
+// CORS 白名单
+const whitelist = (process.env.ORIGIN_WHITELIST || '').split(',').map(s => s.trim()).filter(Boolean);
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || whitelist.length === 0 || whitelist.includes(origin)) return cb(null, true);
+    return cb(new Error('Not allowed by CORS'));
+  }
+}));
+
+// 解析
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('./')); // 提供静态文件服务
+
+// 静态资源（带缓存）
+app.use(express.static('./', { maxAge: '7d', etag: true }));
 
 // 确保数据库目录存在
 const dbPath = path.resolve(config.DB_PATH);
@@ -31,6 +45,14 @@ if (!fs.existsSync(dbDir)) {
 
 // 数据库连接
 const db = new sqlite3.Database(config.DB_PATH);
+
+// 健康检查 & 版本
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() });
+});
+app.get('/api/version', (req, res) => {
+  res.json({ version: process.env.RENDER_GIT_COMMIT || 'dev' });
+});
 
 // JWT认证中间件
 const authenticateToken = (req, res, next) => {
