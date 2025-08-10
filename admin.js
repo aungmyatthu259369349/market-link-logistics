@@ -591,6 +591,7 @@ function loadInboundData(){
       const tbody = document.getElementById('inbound-table-body');
       tbody.innerHTML = (d.rows||[]).map(r => `
         <tr>
+          <td><input type="checkbox" class="row-select" value="${r.inbound_number||''}"></td>
           <td>${r.inbound_number||''}</td>
           <td>${r.supplier||''}</td>
           <td>${r.quantity||''}</td>
@@ -620,6 +621,7 @@ function loadOutboundData(){
       const tbody = document.getElementById('outbound-table-body');
       tbody.innerHTML = (d.rows||[]).map(r => `
         <tr>
+          <td><input type="checkbox" class="row-select" value="${r.outbound_number||''}"></td>
           <td>${r.outbound_number||''}</td>
           <td>${r.customer||''}</td>
           <td>${r.quantity||''}</td>
@@ -647,6 +649,7 @@ function loadInventoryData(){
       const tbody = document.getElementById('inventory-table-body');
       tbody.innerHTML = (d.rows||[]).map(r => `
         <tr>
+          <td><input type="checkbox" class="row-select" value="${r.sku||''}"></td>
           <td>${r.sku||''}</td>
           <td>${r.name||''}</td>
           <td>${r.category||''}</td>
@@ -677,6 +680,7 @@ function loadOrdersData(){
       const tbody = document.getElementById('orders-table-body');
       tbody.innerHTML = (d.rows||[]).map(r => `
         <tr>
+          <td><input type="checkbox" class="row-select" value="${r.order_number||''}"></td>
           <td>${r.order_number||''}</td>
           <td>${r.customer_name||''}</td>
           <td>${r.service_type||''}</td>
@@ -757,4 +761,133 @@ function exportReport() {
 function generateReport() {
     console.log('生成报表');
     showNotification('报表生成中...', 'info');
+} 
+
+function toggleSelectAll(prefix){
+  const all = document.getElementById(`${prefix}-select-all`).checked;
+  document.querySelectorAll(`#${prefix}-table-body input[type=checkbox].row-select`).forEach(cb=>cb.checked=all);
+}
+function collectSelected(prefix){
+  const ids = [];
+  document.querySelectorAll(`#${prefix}-table-body input[type=checkbox].row-select:checked`).forEach(cb=>ids.push(cb.value));
+  return ids;
+}
+function exportCsvRows(filename, rows){
+  if (!rows.length) return alert('请选择要导出的行');
+  const headers = Object.keys(rows[0]);
+  const escape = s => {
+    if (s == null) return '';
+    const v = String(s).replace(/"/g,'""');
+    return /[",\n]/.test(v) ? `"${v}"` : v;
+  };
+  const csv = [headers.join(',')].concat(rows.map(r=>headers.map(h=>escape(r[h])).join(','))).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
+}
+
+function exportInboundSelected(){
+  const ids = collectSelected('inbound');
+  const tbody = document.getElementById('inbound-table-body');
+  const rows = []; tbody.querySelectorAll('tr').forEach(tr=>{
+    const cb = tr.querySelector('input.row-select');
+    if (cb && cb.checked){
+      const tds = tr.querySelectorAll('td');
+      rows.push({ inbound_number: tds[1].innerText, supplier: tds[2].innerText, quantity: tds[3].innerText, created_at: tds[4].innerText, status: tds[5].innerText });
+    }
+  });
+  exportCsvRows('inbound-selected.csv', rows);
+}
+function exportOutboundSelected(){
+  const tbody = document.getElementById('outbound-table-body');
+  const rows = []; tbody.querySelectorAll('tr').forEach(tr=>{
+    const cb = tr.querySelector('input.row-select');
+    if (cb && cb.checked){ const tds=tr.querySelectorAll('td'); rows.push({ outbound_number: tds[1].innerText, customer: tds[2].innerText, quantity: tds[3].innerText, created_at: tds[4].innerText, status: tds[5].innerText }); }
+  });
+  exportCsvRows('outbound-selected.csv', rows);
+}
+function exportInventorySelected(){
+  const tbody = document.getElementById('inventory-table-body');
+  const rows = []; tbody.querySelectorAll('tr').forEach(tr=>{
+    const cb = tr.querySelector('input.row-select');
+    if (cb && cb.checked){ const tds=tr.querySelectorAll('td'); rows.push({ sku: tds[1].innerText, name: tds[2].innerText, category: tds[3].innerText, current_stock: tds[4].innerText, safety_stock: tds[5].innerText, status: tds[6].innerText }); }
+  });
+  exportCsvRows('inventory-selected.csv', rows);
+}
+function exportOrdersSelected(){
+  const tbody = document.getElementById('orders-table-body');
+  const rows = []; tbody.querySelectorAll('tr').forEach(tr=>{
+    const cb = tr.querySelector('input.row-select');
+    if (cb && cb.checked){ const tds=tr.querySelectorAll('td'); rows.push({ order_number: tds[1].innerText, customer_name: tds[2].innerText, service_type: tds[3].innerText, total_weight: tds[4].innerText, total_amount: tds[5].innerText, status: tds[7]?.innerText || '' }); }
+  });
+  exportCsvRows('orders-selected.csv', rows);
+}
+
+// 修改各渲染函数，加入checkbox列
+// 入库渲染处：
+// tbody.innerHTML = rows.map(r => `<tr> <td><input type="checkbox" class="row-select" value="${r.inbound_number||''}"></td> ...`).join('')
+// 出库/库存/订单同理
+// 为避免重复，这里直接覆写渲染体
+
+// 覆写渲染（入库）
+function renderInboundRows(d){
+  const tbody = document.getElementById('inbound-table-body');
+  tbody.innerHTML = (d.rows||[]).map(r=>`
+    <tr>
+      <td><input type="checkbox" class="row-select" value="${r.inbound_number||''}"></td>
+      <td>${r.inbound_number||''}</td>
+      <td>${r.supplier||''}</td>
+      <td>${r.quantity||''}</td>
+      <td>${r.created_at||''}</td>
+      <td><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
+      <td><button class="btn btn-small" onclick="viewInbound('${r.inbound_number||''}')">查看</button></td>
+    </tr>`).join('');
+  buildPagination('inbound-pagination', d.page, d.pageSize, d.total, 'filterInbound');
+}
+// 覆写渲染（出库）
+function renderOutboundRows(d){
+  const tbody = document.getElementById('outbound-table-body');
+  tbody.innerHTML = (d.rows||[]).map(r=>`
+    <tr>
+      <td><input type="checkbox" class="row-select" value="${r.outbound_number||''}"></td>
+      <td>${r.outbound_number||''}</td>
+      <td>${r.customer||''}</td>
+      <td>${r.quantity||''}</td>
+      <td>${r.created_at||''}</td>
+      <td><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
+      <td><button class="btn btn-small" onclick="viewOutbound('${r.outbound_number||''}')">查看</button></td>
+    </tr>`).join('');
+  buildPagination('outbound-pagination', d.page, d.pageSize, d.total, 'filterOutbound');
+}
+// 覆写渲染（库存）
+function renderInventoryRows(d){
+  const tbody = document.getElementById('inventory-table-body');
+  tbody.innerHTML = (d.rows||[]).map(r=>`
+    <tr>
+      <td><input type="checkbox" class="row-select" value="${r.sku||''}"></td>
+      <td>${r.sku||''}</td>
+      <td>${r.name||''}</td>
+      <td>${r.category||''}</td>
+      <td>${r.current_stock||0}</td>
+      <td>${r.safety_stock||0}</td>
+      <td><span class="status-badge ${r.stock_status||''}">${r.stock_status||''}</span></td>
+      <td><button class="btn btn-small" onclick="viewInventory('${r.sku||''}')">查看</button></td>
+    </tr>`).join('');
+  buildPagination('inventory-pagination', d.page, d.pageSize, d.total, 'filterInventory');
+}
+// 覆写渲染（订单）
+function renderOrdersRows(d){
+  const tbody = document.getElementById('orders-table-body');
+  tbody.innerHTML = (d.rows||[]).map(r=>`
+    <tr>
+      <td><input type="checkbox" class="row-select" value="${r.order_number||''}"></td>
+      <td>${r.order_number||''}</td>
+      <td>${r.customer_name||''}</td>
+      <td>${r.service_type||''}</td>
+      <td>${r.total_weight||0}</td>
+      <td>¥${r.total_amount||0}</td>
+      <td><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
+      <td><button class="btn btn-small" onclick="viewOrder('${r.order_number||''}')">查看</button></td>
+    </tr>`).join('');
+  buildPagination('orders-pagination', d.page, d.pageSize, d.total, 'filterOrders');
 } 

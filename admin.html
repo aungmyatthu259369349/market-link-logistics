@@ -262,6 +262,9 @@
                         <button class="btn btn-primary" onclick="exportInboundCsv()">
                             <i class="fas fa-download"></i> 导出CSV
                         </button>
+                        <button class="btn btn-primary" onclick="exportInboundSelected()">
+                            <i class="fas fa-check-double"></i> 导出选中
+                        </button>
                     </div>
                 </div>
 
@@ -269,6 +272,7 @@
                     <table class="data-table">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="inbound-select-all" onclick="toggleSelectAll('inbound')"></th>
                                 <th onclick="sortInbound('inbound_number')">入库单号</th>
                                 <th onclick="sortInbound('supplier')">供应商</th>
                                 <th onclick="sortInbound('quantity')">商品数量</th>
@@ -328,6 +332,9 @@
                         <button class="btn btn-primary" onclick="exportOutboundCsv()">
                             <i class="fas fa-download"></i> 导出CSV
                         </button>
+                        <button class="btn btn-primary" onclick="exportOutboundSelected()">
+                            <i class="fas fa-check-double"></i> 导出选中
+                        </button>
                     </div>
                 </div>
 
@@ -335,6 +342,7 @@
                     <table class="data-table">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="outbound-select-all" onclick="toggleSelectAll('outbound')"></th>
                                 <th onclick="sortOutbound('outbound_number')">出库单号</th>
                                 <th onclick="sortOutbound('customer')">客户</th>
                                 <th onclick="sortOutbound('quantity')">商品数量</th>
@@ -388,6 +396,9 @@
                         <button class="btn btn-primary" onclick="exportInventoryCsv()">
                             <i class="fas fa-download"></i> 导出CSV
                         </button>
+                        <button class="btn btn-primary" onclick="exportInventorySelected()">
+                            <i class="fas fa-check-double"></i> 导出选中
+                        </button>
                     </div>
                 </div>
 
@@ -395,6 +406,7 @@
                     <table class="data-table">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="inventory-select-all" onclick="toggleSelectAll('inventory')"></th>
                                 <th onclick="sortInventory('p.sku')">商品编码</th>
                                 <th onclick="sortInventory('p.name')">商品名称</th>
                                 <th onclick="sortInventory('p.category')">分类</th>
@@ -455,6 +467,9 @@
                         <button class="btn btn-primary" onclick="exportOrdersCsv()">
                             <i class="fas fa-download"></i> 导出CSV
                         </button>
+                        <button class="btn btn-primary" onclick="exportOrdersSelected()">
+                            <i class="fas fa-check-double"></i> 导出选中
+                        </button>
                     </div>
                 </div>
 
@@ -462,6 +477,7 @@
                     <table class="data-table">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="orders-select-all" onclick="toggleSelectAll('orders')"></th>
                                 <th onclick="sortOrders('order_number')">订单号</th>
                                 <th onclick="sortOrders('customer_name')">客户</th>
                                 <th onclick="sortOrders('service_type')">服务</th>
@@ -610,6 +626,6 @@
         </div>
     </div>
 
-    <script src="admin.js"></script>
+    <script src="admin.js?v=20250810"></script>
 </body>
 </html> 
