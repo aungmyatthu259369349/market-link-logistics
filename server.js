@@ -164,6 +164,8 @@ function sanitizeSort(input, whitelist, defaultSort){
   return `${field} ${d}`;
 }
 
+function buildInPlaceholders(arr){ return arr.map(()=>'?').join(','); }
+
 // 入库列表：分页/搜索/导出
 app.get('/api/admin/inbound', authenticateToken, requireAdmin, (req, res) => {
   const { search = '', status = '', startDate = '', endDate = '', export: exp, sort } = req.query;
@@ -189,6 +191,26 @@ app.get('/api/admin/inbound', authenticateToken, requireAdmin, (req, res) => {
   });
 });
 
+// 批量操作：入库
+app.post('/api/admin/inbound/batch-status', authenticateToken, requireAdmin, (req, res) => {
+  const { ids = [], status } = req.body || {};
+  if (!ids.length || !status) return res.status(400).json({ error: '参数错误' });
+  const placeholders = buildInPlaceholders(ids);
+  db.run(`UPDATE inbound_records SET status = ? WHERE inbound_number IN (${placeholders})`, [status, ...ids], (err)=>{
+    if (err) return res.status(500).json({ error: '更新失败' });
+    res.json({ success: true });
+  });
+});
+app.post('/api/admin/inbound/batch-delete', authenticateToken, requireAdmin, (req, res) => {
+  const { ids = [] } = req.body || {};
+  if (!ids.length) return res.status(400).json({ error: '参数错误' });
+  const placeholders = buildInPlaceholders(ids);
+  db.run(`DELETE FROM inbound_records WHERE inbound_number IN (${placeholders})`, ids, (err)=>{
+    if (err) return res.status(500).json({ error: '删除失败' });
+    res.json({ success: true });
+  });
+});
+
 // 出库列表
 app.get('/api/admin/outbound', authenticateToken, requireAdmin, (req, res) => {
   const { search = '', status = '', startDate = '', endDate = '', export: exp, sort } = req.query;
@@ -211,6 +233,26 @@ app.get('/api/admin/outbound', authenticateToken, requireAdmin, (req, res) => {
       const total = r2 ? r2.cnt || 0 : 0;
       res.json({ page, pageSize, total, rows });
     });
+  });
+});
+
+// 批量操作：出库
+app.post('/api/admin/outbound/batch-status', authenticateToken, requireAdmin, (req, res) => {
+  const { ids = [], status } = req.body || {};
+  if (!ids.length || !status) return res.status(400).json({ error: '参数错误' });
+  const placeholders = buildInPlaceholders(ids);
+  db.run(`UPDATE outbound_records SET status = ? WHERE outbound_number IN (${placeholders})`, [status, ...ids], (err)=>{
+    if (err) return res.status(500).json({ error: '更新失败' });
+    res.json({ success: true });
+  });
+});
+app.post('/api/admin/outbound/batch-delete', authenticateToken, requireAdmin, (req, res) => {
+  const { ids = [] } = req.body || {};
+  if (!ids.length) return res.status(400).json({ error: '参数错误' });
+  const placeholders = buildInPlaceholders(ids);
+  db.run(`DELETE FROM outbound_records WHERE outbound_number IN (${placeholders})`, ids, (err)=>{
+    if (err) return res.status(500).json({ error: '删除失败' });
+    res.json({ success: true });
   });
 });
 
@@ -260,6 +302,26 @@ app.get('/api/admin/orders', authenticateToken, requireAdmin, (req, res) => {
       const total = r2 ? r2.cnt || 0 : 0;
       res.json({ page, pageSize, total, rows });
     });
+  });
+});
+
+// 批量操作：订单
+app.post('/api/admin/orders/batch-status', authenticateToken, requireAdmin, (req, res) => {
+  const { ids = [], status } = req.body || {};
+  if (!ids.length || !status) return res.status(400).json({ error: '参数错误' });
+  const placeholders = buildInPlaceholders(ids);
+  db.run(`UPDATE orders SET status = ? WHERE order_number IN (${placeholders})`, [status, ...ids], (err)=>{
+    if (err) return res.status(500).json({ error: '更新失败' });
+    res.json({ success: true });
+  });
+});
+app.post('/api/admin/orders/batch-delete', authenticateToken, requireAdmin, (req, res) => {
+  const { ids = [] } = req.body || {};
+  if (!ids.length) return res.status(400).json({ error: '参数错误' });
+  const placeholders = buildInPlaceholders(ids);
+  db.run(`DELETE FROM orders WHERE order_number IN (${placeholders})`, ids, (err)=>{
+    if (err) return res.status(500).json({ error: '删除失败' });
+    res.json({ success: true });
   });
 });
 

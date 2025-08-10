@@ -873,104 +873,69 @@ function exportOrdersSelected(){
   exportCsvRows('orders-selected.csv', rows);
 }
 
-// 修改各渲染函数，加入checkbox列
-// 入库渲染处：
-// tbody.innerHTML = rows.map(r => `<tr> <td><input type="checkbox" class="row-select" value="${r.inbound_number||''}"></td> ...`).join('')
-// 出库/库存/订单同理
-// 为避免重复，这里直接覆写渲染体
+// 批量操作
+function getSelectedIds(prefix){ return Array.from(document.querySelectorAll(`#${prefix}-table-body input.row-select:checked`)).map(cb=>cb.value); }
+function batchConfirm(message){ return new Promise((resolve)=>{ if (confirm(message)) resolve(true); else resolve(false); }); }
+async function batchUpdateStatus(prefix, url, status){
+  const ids = getSelectedIds(prefix); if (!ids.length) return alert('请先选择行');
+  const ok = await batchConfirm(`确定将选中 ${ids.length} 条记录状态更新为 ${status} 吗？`); if (!ok) return;
+  fetch(url, { method:'POST', headers: { 'Content-Type':'application/json', ...authHeader() }, body: JSON.stringify({ ids, status })})
+    .then(r=>r.json()).then(d=>{ if (!d.success) return alert(d.error||'更新失败'); alert('更新成功'); if(prefix==='inbound') loadInboundData(); if(prefix==='outbound') loadOutboundData(); if(prefix==='orders') loadOrdersData(); });
+}
+async function batchDelete(prefix, url){
+  const ids = getSelectedIds(prefix); if (!ids.length) return alert('请先选择行');
+  const ok = await batchConfirm(`确定删除选中 ${ids.length} 条记录吗？此操作不可撤销！`); if (!ok) return;
+  fetch(url, { method:'POST', headers: { 'Content-Type':'application/json', ...authHeader() }, body: JSON.stringify({ ids })})
+    .then(r=>r.json()).then(d=>{ if (!d.success) return alert(d.error||'删除失败'); alert('删除成功'); if(prefix==='inbound') loadInboundData(); if(prefix==='outbound') loadOutboundData(); if(prefix==='orders') loadOrdersData(); });
+}
 
-// 覆写渲染（入库）
-function renderInboundRows(d){
-  const tbody = document.getElementById('inbound-table-body');
-  tbody.innerHTML = (d.rows||[]).map(r=>`
-    <tr>
-      <td><input type="checkbox" class="row-select" value="${r.inbound_number||''}"></td>
-      <td class="col-inbound_number">${r.inbound_number||''}</td>
-      <td class="col-supplier">${r.supplier||''}</td>
-      <td class="col-quantity">${r.quantity||''}</td>
-      <td class="col-created_at">${r.created_at||''}</td>
-      <td class="col-status"><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
-      <td><button class="btn btn-small" onclick="viewInbound('${r.inbound_number||''}')">查看</button></td>
-    </tr>`).join('');
-  buildPagination('inbound-pagination', d.page, d.pageSize, d.total, 'filterInbound');
-}
-// 覆写渲染（出库）
-function renderOutboundRows(d){
-  const tbody = document.getElementById('outbound-table-body');
-  tbody.innerHTML = (d.rows||[]).map(r=>`
-    <tr>
-      <td><input type="checkbox" class="row-select" value="${r.outbound_number||''}"></td>
-      <td class="col-outbound_number">${r.outbound_number||''}</td>
-      <td class="col-customer">${r.customer||''}</td>
-      <td class="col-quantity">${r.quantity||''}</td>
-      <td class="col-created_at">${r.created_at||''}</td>
-      <td class="col-status"><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
-      <td><button class="btn btn-small" onclick="viewOutbound('${r.outbound_number||''}')">查看</button></td>
-    </tr>`).join('');
-  buildPagination('outbound-pagination', d.page, d.pageSize, d.total, 'filterOutbound');
-}
-// 覆写渲染（库存）
-function renderInventoryRows(d){
-  const tbody = document.getElementById('inventory-table-body');
-  tbody.innerHTML = (d.rows||[]).map(r=>`
-    <tr>
-      <td><input type="checkbox" class="row-select" value="${r.sku||''}"></td>
-      <td class="col-sku">${r.sku||''}</td>
-      <td class="col-name">${r.name||''}</td>
-      <td class="col-category">${r.category||''}</td>
-      <td class="col-current_stock">${r.current_stock||0}</td>
-      <td class="col-safety_stock">${r.safety_stock||0}</td>
-      <td class="col-stock_status"><span class="status-badge ${r.stock_status||''}">${r.stock_status||''}</span></td>
-      <td><button class="btn btn-small" onclick="viewInventory('${r.sku||''}')">查看</button></td>
-    </tr>`).join('');
-  buildPagination('inventory-pagination', d.page, d.pageSize, d.total, 'filterInventory');
-}
-// 覆写渲染（订单）
-function renderOrdersRows(d){
-  const tbody = document.getElementById('orders-table-body');
-  tbody.innerHTML = (d.rows||[]).map(r=>`
-    <tr>
-      <td><input type="checkbox" class="row-select" value="${r.order_number||''}"></td>
-      <td class="col-order_number">${r.order_number||''}</td>
-      <td class="col-customer_name">${r.customer_name||''}</td>
-      <td class="col-service_type">${r.service_type||''}</td>
-      <td class="col-total_weight">${r.total_weight||0}</td>
-      <td class="col-total_amount">¥${r.total_amount||0}</td>
-      <td class="col-status"><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
-      <td><button class="btn btn-small" onclick="viewOrder('${r.order_number||''}')">查看</button></td>
-    </tr>`).join('');
-  buildPagination('orders-pagination', d.page, d.pageSize, d.total, 'filterOrders');
-} 
-
-function toggleColumns(prefix){
+// 偏好：列显隐与列宽
+function savePrefs(prefix){
   const sel = document.getElementById(`${prefix}-columns`);
-  if (!sel) return;
-  const selected = new Set(Array.from(sel.selectedOptions).map(o=>o.value));
-  document.querySelectorAll(`#${prefix}-table thead th[class^='col-'], #${prefix}-table tbody td[class^='col-']`).forEach(el=>{
-    el.style.display = selected.has(Array.from(el.classList).find(c=>c.startsWith('col-'))) ? '' : 'none';
-  });
+  const cols = sel ? Array.from(sel.options).map(o=>({ key:o.value, visible:o.selected })) : [];
+  const widths = {}; document.querySelectorAll(`#${prefix}-table thead th`).forEach((th,i)=>{ widths[i]=th.offsetWidth; });
+  localStorage.setItem(`prefs:${prefix}`, JSON.stringify({ cols, widths }));
 }
-
-function enableColResize(tableId){
-  const table = document.getElementById(tableId);
-  if (!table) return;
+function loadPrefs(prefix){
+  const raw = localStorage.getItem(`prefs:${prefix}`); if (!raw) return;
+  try {
+    const { cols, widths } = JSON.parse(raw);
+    const sel = document.getElementById(`${prefix}-columns`);
+    if (sel && cols){ Array.from(sel.options).forEach(o=>{ const c = cols.find(x=>x.key===o.value); if (c) o.selected = !!c.visible; }); toggleColumns(prefix); }
+    const ths = document.querySelectorAll(`#${prefix}-table thead th`);
+    if (widths){ Object.keys(widths).forEach(i=>{ const th = ths[parseInt(i,10)]; if (th) th.style.width = widths[i]+'px'; }); }
+  } catch {}
+}
+// 在列显隐变动与拖拽结束后保存
+(function attachPrefsEvents(){
+  ['inbound','outbound','inventory','orders'].forEach(prefix=>{
+    const sel = document.getElementById(`${prefix}-columns`); if (sel) sel.addEventListener('change', ()=>savePrefs(prefix));
+    // 监听拖拽结束：在enableColResize中 mouseup里保存
+  });
+})();
+// 覆盖enableColResize以在鼠标松开时保存
+const _enableColResize = enableColResize;
+enableColResize = function(tableId){
+  const table = document.getElementById(tableId); if (!table) return;
   table.querySelectorAll('th .col-resizer').forEach(handle => {
     let startX, startWidth, th;
     handle.addEventListener('mousedown', e => {
       th = handle.parentElement; startX = e.pageX; startWidth = th.offsetWidth; document.body.style.cursor='col-resize';
       const onMove = (ev)=>{ const w = Math.max(60, startWidth + (ev.pageX - startX)); th.style.width = w+'px'; };
-      const onUp = ()=>{ document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.body.style.cursor=''; };
+      const onUp = ()=>{ document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.body.style.cursor='';
+        const prefix = tableId.replace('-table',''); savePrefs(prefix);
+      };
       document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
     });
   });
-}
+};
 
-// 在tab激活后启用
+// 在tab激活时加载偏好
 function onTabActivated(tabId){
-  if (tabId==='inbound') enableColResize('inbound-table');
-  if (tabId==='outbound') enableColResize('outbound-table');
-  if (tabId==='inventory') enableColResize('inventory-table');
-  if (tabId==='orders') enableColResize('orders-table');
+  if (tabId==='inbound') { enableColResize('inbound-table'); loadPrefs('inbound'); }
+  if (tabId==='outbound') { enableColResize('outbound-table'); loadPrefs('outbound'); }
+  if (tabId==='inventory') { enableColResize('inventory-table'); loadPrefs('inventory'); }
+  if (tabId==='orders') { enableColResize('orders-table'); loadPrefs('orders'); }
 }
 // Hook到switchTab
 const _switchTab = switchTab;
