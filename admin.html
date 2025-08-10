@@ -269,20 +269,32 @@
                 </div>
 
                 <div class="table-container">
-                    <table class="data-table">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div></div>
+                        <div>
+                            <label style="font-size:12px;color:var(--text-secondary);margin-right:6px;">列显隐</label>
+                            <select id="inbound-columns" multiple size="1" onchange="toggleColumns('inbound')">
+                                <option value="col-inbound_number" selected>入库单号</option>
+                                <option value="col-supplier" selected>供应商</option>
+                                <option value="col-quantity" selected>数量</option>
+                                <option value="col-created_at" selected>创建时间</option>
+                                <option value="col-status" selected>状态</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table class="data-table" id="inbound-table">
                         <thead>
                             <tr>
-                                <th><input type="checkbox" id="inbound-select-all" onclick="toggleSelectAll('inbound')"></th>
-                                <th onclick="sortInbound('inbound_number')">入库单号</th>
-                                <th onclick="sortInbound('supplier')">供应商</th>
-                                <th onclick="sortInbound('quantity')">商品数量</th>
-                                <th onclick="sortInbound('created_at')">创建时间</th>
-                                <th onclick="sortInbound('status')">状态</th>
-                                <th>操作</th>
+                                <th><input type="checkbox" id="inbound-select-all" onclick="toggleSelectAll('inbound')"><span class="col-resizer"></span></th>
+                                <th class="col-inbound_number" onclick="sortInbound('inbound_number')">入库单号<span class="col-resizer"></span></th>
+                                <th class="col-supplier" onclick="sortInbound('supplier')">供应商<span class="col-resizer"></span></th>
+                                <th class="col-quantity" onclick="sortInbound('quantity')">商品数量<span class="col-resizer"></span></th>
+                                <th class="col-created_at" onclick="sortInbound('created_at')">创建时间<span class="col-resizer"></span></th>
+                                <th class="col-status" onclick="sortInbound('status')">状态<span class="col-resizer"></span></th>
+                                <th>操作<span class="col-resizer"></span></th>
                             </tr>
                         </thead>
-                        <tbody id="inbound-table-body">
-                        </tbody>
+                        <tbody id="inbound-table-body"></tbody>
                     </table>
                     <div id="inbound-pagination" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;"></div>
                 </div>
@@ -339,20 +351,32 @@
                 </div>
 
                 <div class="table-container">
-                    <table class="data-table">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div></div>
+                        <div>
+                            <label style="font-size:12px;color:var(--text-secondary);margin-right:6px;">列显隐</label>
+                            <select id="outbound-columns" multiple size="1" onchange="toggleColumns('outbound')">
+                                <option value="col-outbound_number" selected>出库单号</option>
+                                <option value="col-customer" selected>客户</option>
+                                <option value="col-quantity" selected>数量</option>
+                                <option value="col-created_at" selected>创建时间</option>
+                                <option value="col-status" selected>状态</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table class="data-table" id="outbound-table">
                         <thead>
                             <tr>
-                                <th><input type="checkbox" id="outbound-select-all" onclick="toggleSelectAll('outbound')"></th>
-                                <th onclick="sortOutbound('outbound_number')">出库单号</th>
-                                <th onclick="sortOutbound('customer')">客户</th>
-                                <th onclick="sortOutbound('quantity')">商品数量</th>
-                                <th onclick="sortOutbound('created_at')">创建时间</th>
-                                <th onclick="sortOutbound('status')">状态</th>
-                                <th>操作</th>
+                                <th><input type="checkbox" id="outbound-select-all" onclick="toggleSelectAll('outbound')"><span class="col-resizer"></span></th>
+                                <th class="col-outbound_number" onclick="sortOutbound('outbound_number')">出库单号<span class="col-resizer"></span></th>
+                                <th class="col-customer" onclick="sortOutbound('customer')">客户<span class="col-resizer"></span></th>
+                                <th class="col-quantity" onclick="sortOutbound('quantity')">商品数量<span class="col-resizer"></span></th>
+                                <th class="col-created_at" onclick="sortOutbound('created_at')">创建时间<span class="col-resizer"></span></th>
+                                <th class="col-status" onclick="sortOutbound('status')">状态<span class="col-resizer"></span></th>
+                                <th>操作<span class="col-resizer"></span></th>
                             </tr>
                         </thead>
-                        <tbody id="outbound-table-body">
-                        </tbody>
+                        <tbody id="outbound-table-body"></tbody>
                     </table>
                     <div id="outbound-pagination" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;"></div>
                 </div>
@@ -403,21 +427,34 @@
                 </div>
 
                 <div class="table-container">
-                    <table class="data-table">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div></div>
+                        <div>
+                            <label style="font-size:12px;color:var(--text-secondary);margin-right:6px;">列显隐</label>
+                            <select id="inventory-columns" multiple size="1" onchange="toggleColumns('inventory')">
+                                <option value="col-sku" selected>商品编码</option>
+                                <option value="col-name" selected>商品名称</option>
+                                <option value="col-category" selected>分类</option>
+                                <option value="col-current_stock" selected>当前库存</option>
+                                <option value="col-safety_stock" selected>安全库存</option>
+                                <option value="col-stock_status" selected>状态</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table class="data-table" id="inventory-table">
                         <thead>
                             <tr>
-                                <th><input type="checkbox" id="inventory-select-all" onclick="toggleSelectAll('inventory')"></th>
-                                <th onclick="sortInventory('p.sku')">商品编码</th>
-                                <th onclick="sortInventory('p.name')">商品名称</th>
-                                <th onclick="sortInventory('p.category')">分类</th>
-                                <th onclick="sortInventory('i.current_stock')">当前库存</th>
-                                <th onclick="sortInventory('p.safety_stock')">安全库存</th>
-                                <th onclick="sortInventory('stock_status')">状态</th>
-                                <th>操作</th>
+                                <th><input type="checkbox" id="inventory-select-all" onclick="toggleSelectAll('inventory')"><span class="col-resizer"></span></th>
+                                <th class="col-sku" onclick="sortInventory('p.sku')">商品编码<span class="col-resizer"></span></th>
+                                <th class="col-name" onclick="sortInventory('p.name')">商品名称<span class="col-resizer"></span></th>
+                                <th class="col-category" onclick="sortInventory('p.category')">分类<span class="col-resizer"></span></th>
+                                <th class="col-current_stock" onclick="sortInventory('i.current_stock')">当前库存<span class="col-resizer"></span></th>
+                                <th class="col-safety_stock" onclick="sortInventory('p.safety_stock')">安全库存<span class="col-resizer"></span></th>
+                                <th class="col-stock_status" onclick="sortInventory('stock_status')">状态<span class="col-resizer"></span></th>
+                                <th>操作<span class="col-resizer"></span></th>
                             </tr>
                         </thead>
-                        <tbody id="inventory-table-body">
-                        </tbody>
+                        <tbody id="inventory-table-body"></tbody>
                     </table>
                     <div id="inventory-pagination" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;"></div>
                 </div>
@@ -474,22 +511,36 @@
                 </div>
 
                 <div class="table-container">
-                    <table class="data-table">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div></div>
+                        <div>
+                            <label style="font-size:12px;color:var(--text-secondary);margin-right:6px;">列显隐</label>
+                            <select id="orders-columns" multiple size="1" onchange="toggleColumns('orders')">
+                                <option value="col-order_number" selected>订单号</option>
+                                <option value="col-customer_name" selected>客户</option>
+                                <option value="col-service_type" selected>服务</option>
+                                <option value="col-total_weight" selected>重量</option>
+                                <option value="col-total_amount" selected>总金额</option>
+                                <option value="col-created_at" selected>创建时间</option>
+                                <option value="col-status" selected>状态</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table class="data-table" id="orders-table">
                         <thead>
                             <tr>
-                                <th><input type="checkbox" id="orders-select-all" onclick="toggleSelectAll('orders')"></th>
-                                <th onclick="sortOrders('order_number')">订单号</th>
-                                <th onclick="sortOrders('customer_name')">客户</th>
-                                <th onclick="sortOrders('service_type')">服务</th>
-                                <th onclick="sortOrders('total_weight')">重量</th>
-                                <th onclick="sortOrders('total_amount')">总金额</th>
-                                <th onclick="sortOrders('created_at')">创建时间</th>
-                                <th onclick="sortOrders('status')">状态</th>
-                                <th>操作</th>
+                                <th><input type="checkbox" id="orders-select-all" onclick="toggleSelectAll('orders')"><span class="col-resizer"></span></th>
+                                <th class="col-order_number" onclick="sortOrders('order_number')">订单号<span class="col-resizer"></span></th>
+                                <th class="col-customer_name" onclick="sortOrders('customer_name')">客户<span class="col-resizer"></span></th>
+                                <th class="col-service_type" onclick="sortOrders('service_type')">服务<span class="col-resizer"></span></th>
+                                <th class="col-total_weight" onclick="sortOrders('total_weight')">重量<span class="col-resizer"></span></th>
+                                <th class="col-total_amount" onclick="sortOrders('total_amount')">总金额<span class="col-resizer"></span></th>
+                                <th class="col-created_at" onclick="sortOrders('created_at')">创建时间<span class="col-resizer"></span></th>
+                                <th class="col-status" onclick="sortOrders('status')">状态<span class="col-resizer"></span></th>
+                                <th>操作<span class="col-resizer"></span></th>
                             </tr>
                         </thead>
-                        <tbody id="orders-table-body">
-                        </tbody>
+                        <tbody id="orders-table-body"></tbody>
                     </table>
                     <div id="orders-pagination" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;"></div>
                 </div>

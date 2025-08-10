@@ -885,11 +885,11 @@ function renderInboundRows(d){
   tbody.innerHTML = (d.rows||[]).map(r=>`
     <tr>
       <td><input type="checkbox" class="row-select" value="${r.inbound_number||''}"></td>
-      <td>${r.inbound_number||''}</td>
-      <td>${r.supplier||''}</td>
-      <td>${r.quantity||''}</td>
-      <td>${r.created_at||''}</td>
-      <td><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
+      <td class="col-inbound_number">${r.inbound_number||''}</td>
+      <td class="col-supplier">${r.supplier||''}</td>
+      <td class="col-quantity">${r.quantity||''}</td>
+      <td class="col-created_at">${r.created_at||''}</td>
+      <td class="col-status"><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
       <td><button class="btn btn-small" onclick="viewInbound('${r.inbound_number||''}')">查看</button></td>
     </tr>`).join('');
   buildPagination('inbound-pagination', d.page, d.pageSize, d.total, 'filterInbound');
@@ -900,11 +900,11 @@ function renderOutboundRows(d){
   tbody.innerHTML = (d.rows||[]).map(r=>`
     <tr>
       <td><input type="checkbox" class="row-select" value="${r.outbound_number||''}"></td>
-      <td>${r.outbound_number||''}</td>
-      <td>${r.customer||''}</td>
-      <td>${r.quantity||''}</td>
-      <td>${r.created_at||''}</td>
-      <td><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
+      <td class="col-outbound_number">${r.outbound_number||''}</td>
+      <td class="col-customer">${r.customer||''}</td>
+      <td class="col-quantity">${r.quantity||''}</td>
+      <td class="col-created_at">${r.created_at||''}</td>
+      <td class="col-status"><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
       <td><button class="btn btn-small" onclick="viewOutbound('${r.outbound_number||''}')">查看</button></td>
     </tr>`).join('');
   buildPagination('outbound-pagination', d.page, d.pageSize, d.total, 'filterOutbound');
@@ -915,12 +915,12 @@ function renderInventoryRows(d){
   tbody.innerHTML = (d.rows||[]).map(r=>`
     <tr>
       <td><input type="checkbox" class="row-select" value="${r.sku||''}"></td>
-      <td>${r.sku||''}</td>
-      <td>${r.name||''}</td>
-      <td>${r.category||''}</td>
-      <td>${r.current_stock||0}</td>
-      <td>${r.safety_stock||0}</td>
-      <td><span class="status-badge ${r.stock_status||''}">${r.stock_status||''}</span></td>
+      <td class="col-sku">${r.sku||''}</td>
+      <td class="col-name">${r.name||''}</td>
+      <td class="col-category">${r.category||''}</td>
+      <td class="col-current_stock">${r.current_stock||0}</td>
+      <td class="col-safety_stock">${r.safety_stock||0}</td>
+      <td class="col-stock_status"><span class="status-badge ${r.stock_status||''}">${r.stock_status||''}</span></td>
       <td><button class="btn btn-small" onclick="viewInventory('${r.sku||''}')">查看</button></td>
     </tr>`).join('');
   buildPagination('inventory-pagination', d.page, d.pageSize, d.total, 'filterInventory');
@@ -931,13 +931,47 @@ function renderOrdersRows(d){
   tbody.innerHTML = (d.rows||[]).map(r=>`
     <tr>
       <td><input type="checkbox" class="row-select" value="${r.order_number||''}"></td>
-      <td>${r.order_number||''}</td>
-      <td>${r.customer_name||''}</td>
-      <td>${r.service_type||''}</td>
-      <td>${r.total_weight||0}</td>
-      <td>¥${r.total_amount||0}</td>
-      <td><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
+      <td class="col-order_number">${r.order_number||''}</td>
+      <td class="col-customer_name">${r.customer_name||''}</td>
+      <td class="col-service_type">${r.service_type||''}</td>
+      <td class="col-total_weight">${r.total_weight||0}</td>
+      <td class="col-total_amount">¥${r.total_amount||0}</td>
+      <td class="col-status"><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
       <td><button class="btn btn-small" onclick="viewOrder('${r.order_number||''}')">查看</button></td>
     </tr>`).join('');
   buildPagination('orders-pagination', d.page, d.pageSize, d.total, 'filterOrders');
 } 
+
+function toggleColumns(prefix){
+  const sel = document.getElementById(`${prefix}-columns`);
+  if (!sel) return;
+  const selected = new Set(Array.from(sel.selectedOptions).map(o=>o.value));
+  document.querySelectorAll(`#${prefix}-table thead th[class^='col-'], #${prefix}-table tbody td[class^='col-']`).forEach(el=>{
+    el.style.display = selected.has(Array.from(el.classList).find(c=>c.startsWith('col-'))) ? '' : 'none';
+  });
+}
+
+function enableColResize(tableId){
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  table.querySelectorAll('th .col-resizer').forEach(handle => {
+    let startX, startWidth, th;
+    handle.addEventListener('mousedown', e => {
+      th = handle.parentElement; startX = e.pageX; startWidth = th.offsetWidth; document.body.style.cursor='col-resize';
+      const onMove = (ev)=>{ const w = Math.max(60, startWidth + (ev.pageX - startX)); th.style.width = w+'px'; };
+      const onUp = ()=>{ document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.body.style.cursor=''; };
+      document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+    });
+  });
+}
+
+// 在tab激活后启用
+function onTabActivated(tabId){
+  if (tabId==='inbound') enableColResize('inbound-table');
+  if (tabId==='outbound') enableColResize('outbound-table');
+  if (tabId==='inventory') enableColResize('inventory-table');
+  if (tabId==='orders') enableColResize('orders-table');
+}
+// Hook到switchTab
+const _switchTab = switchTab;
+switchTab = function(tabId){ _switchTab(tabId); onTabActivated(tabId); }; 

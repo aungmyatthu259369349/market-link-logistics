@@ -1038,3 +1038,16 @@ body {
     background: var(--gradient-dark);
     border: 1px solid var(--border-glow);
 } 
+
+/* 列宽拖拽 */
+.data-table thead th { position: relative; }
+.col-resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 6px;
+  cursor: col-resize;
+  user-select: none;
+}
+.col-resizer:hover { background: rgba(0,212,255,0.25); } 
