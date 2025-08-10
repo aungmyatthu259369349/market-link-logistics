@@ -577,21 +577,15 @@ function buildPagination(elId, page, pageSize, total, onPage) {
 
 // 入库
 let inboundPage = 1, inboundPageSize = 10;
-function filterInbound(page){ inboundPage = page || inboundPage; loadInboundData(); }
-function exportInboundCsv(){
-  const search = document.getElementById('inbound-search')?.value || '';
-  const status = document.getElementById('inbound-status-filter')?.value || '';
-  const startDate = document.getElementById('inbound-date-start')?.value || '';
-  const endDate = document.getElementById('inbound-date-end')?.value || '';
-  const qs = new URLSearchParams({ search, status, startDate, endDate, export:'csv' }).toString();
-  window.open(`/api/admin/inbound?${qs}`, '_blank');
-}
+let inboundSort = 'created_at DESC';
+function setInboundPageSize(v){ inboundPageSize = parseInt(v,10)||10; filterInbound(1); }
+function sortInbound(field){ inboundSort = field + (inboundSort.includes('DESC')?' ASC':' DESC'); filterInbound(); }
 function loadInboundData(){
   const search = document.getElementById('inbound-search')?.value || '';
   const status = document.getElementById('inbound-status-filter')?.value || '';
   const startDate = document.getElementById('inbound-date-start')?.value || '';
   const endDate = document.getElementById('inbound-date-end')?.value || '';
-  const qs = new URLSearchParams({ page: inboundPage, pageSize: inboundPageSize, search, status, startDate, endDate }).toString();
+  const qs = new URLSearchParams({ page: inboundPage, pageSize: inboundPageSize, search, status, startDate, endDate, sort: inboundSort }).toString();
   fetch(`/api/admin/inbound?${qs}`, { headers: authHeader() })
     .then(r=>r.json()).then(d=>{
       const tbody = document.getElementById('inbound-table-body');
@@ -600,7 +594,7 @@ function loadInboundData(){
           <td>${r.inbound_number||''}</td>
           <td>${r.supplier||''}</td>
           <td>${r.quantity||''}</td>
-          <td>${r.inbound_time||''}</td>
+          <td>${r.created_at||''}</td>
           <td><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
           <td>
             <button class="btn btn-small" onclick="viewInbound('${r.inbound_number||''}')">查看</button>
@@ -612,21 +606,15 @@ function loadInboundData(){
 
 // 出库
 let outboundPage = 1, outboundPageSize = 10;
-function filterOutbound(page){ outboundPage = page || outboundPage; loadOutboundData(); }
-function exportOutboundCsv(){
-  const search = document.getElementById('outbound-search')?.value || '';
-  const status = document.getElementById('outbound-status-filter')?.value || '';
-  const startDate = document.getElementById('outbound-date-start')?.value || '';
-  const endDate = document.getElementById('outbound-date-end')?.value || '';
-  const qs = new URLSearchParams({ search, status, startDate, endDate, export:'csv' }).toString();
-  window.open(`/api/admin/outbound?${qs}`, '_blank');
-}
+let outboundSort = 'created_at DESC';
+function setOutboundPageSize(v){ outboundPageSize = parseInt(v,10)||10; filterOutbound(1); }
+function sortOutbound(field){ outboundSort = field + (outboundSort.includes('DESC')?' ASC':' DESC'); filterOutbound(); }
 function loadOutboundData(){
   const search = document.getElementById('outbound-search')?.value || '';
   const status = document.getElementById('outbound-status-filter')?.value || '';
   const startDate = document.getElementById('outbound-date-start')?.value || '';
   const endDate = document.getElementById('outbound-date-end')?.value || '';
-  const qs = new URLSearchParams({ page: outboundPage, pageSize: outboundPageSize, search, status, startDate, endDate }).toString();
+  const qs = new URLSearchParams({ page: outboundPage, pageSize: outboundPageSize, search, status, startDate, endDate, sort: outboundSort }).toString();
   fetch(`/api/admin/outbound?${qs}`, { headers: authHeader() })
     .then(r=>r.json()).then(d=>{
       const tbody = document.getElementById('outbound-table-body');
@@ -635,7 +623,7 @@ function loadOutboundData(){
           <td>${r.outbound_number||''}</td>
           <td>${r.customer||''}</td>
           <td>${r.quantity||''}</td>
-          <td>${r.outbound_time||''}</td>
+          <td>${r.created_at||''}</td>
           <td><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
           <td>
             <button class="btn btn-small" onclick="viewOutbound('${r.outbound_number||''}')">查看</button>
@@ -647,17 +635,13 @@ function loadOutboundData(){
 
 // 库存
 let inventoryPage = 1, inventoryPageSize = 10;
-function filterInventory(page){ inventoryPage = page || inventoryPage; loadInventoryData(); }
-function exportInventoryCsv(){
-  const search = document.getElementById('inventory-search')?.value || '';
-  const category = document.getElementById('inventory-category-filter')?.value || '';
-  const qs = new URLSearchParams({ search, category, export:'csv' }).toString();
-  window.open(`/api/admin/inventory?${qs}`, '_blank');
-}
+let inventorySort = 'p.created_at DESC';
+function setInventoryPageSize(v){ inventoryPageSize = parseInt(v,10)||10; filterInventory(1); }
+function sortInventory(field){ inventorySort = field + (inventorySort.includes('DESC')?' ASC':' DESC'); filterInventory(); }
 function loadInventoryData(){
   const search = document.getElementById('inventory-search')?.value || '';
   const category = document.getElementById('inventory-category-filter')?.value || '';
-  const qs = new URLSearchParams({ page: inventoryPage, pageSize: inventoryPageSize, search, category }).toString();
+  const qs = new URLSearchParams({ page: inventoryPage, pageSize: inventoryPageSize, search, category, sort: inventorySort }).toString();
   fetch(`/api/admin/inventory?${qs}`, { headers: authHeader() })
     .then(r=>r.json()).then(d=>{
       const tbody = document.getElementById('inventory-table-body');
@@ -679,21 +663,15 @@ function loadInventoryData(){
 
 // 订单
 let ordersPage = 1, ordersPageSize = 10;
-function filterOrders(page){ ordersPage = page || ordersPage; loadOrdersData(); }
-function exportOrdersCsv(){
-  const search = document.getElementById('orders-search')?.value || '';
-  const status = document.getElementById('order-status-filter')?.value || '';
-  const startDate = document.getElementById('order-date-start')?.value || '';
-  const endDate = document.getElementById('order-date-end')?.value || '';
-  const qs = new URLSearchParams({ search, status, startDate, endDate, export:'csv' }).toString();
-  window.open(`/api/admin/orders?${qs}`, '_blank');
-}
+let ordersSort = 'created_at DESC';
+function setOrdersPageSize(v){ ordersPageSize = parseInt(v,10)||10; filterOrders(1); }
+function sortOrders(field){ ordersSort = field + (ordersSort.includes('DESC')?' ASC':' DESC'); filterOrders(); }
 function loadOrdersData(){
   const search = document.getElementById('orders-search')?.value || '';
   const status = document.getElementById('order-status-filter')?.value || '';
   const startDate = document.getElementById('order-date-start')?.value || '';
   const endDate = document.getElementById('order-date-end')?.value || '';
-  const qs = new URLSearchParams({ page: ordersPage, pageSize: ordersPageSize, search, status, startDate, endDate }).toString();
+  const qs = new URLSearchParams({ page: ordersPage, pageSize: ordersPageSize, search, status, startDate, endDate, sort: ordersSort }).toString();
   fetch(`/api/admin/orders?${qs}`, { headers: authHeader() })
     .then(r=>r.json()).then(d=>{
       const tbody = document.getElementById('orders-table-body');

@@ -156,25 +156,32 @@ function sendCsv(res, filename, rows) {
   res.send(csv);
 }
 
+function sanitizeSort(input, whitelist, defaultSort){
+  if(!input) return defaultSort;
+  const [field, dir] = input.split(/\s+/);
+  if (!whitelist.includes(field)) return defaultSort;
+  const d = (dir||'DESC').toUpperCase()==='ASC' ? 'ASC' : 'DESC';
+  return `${field} ${d}`;
+}
+
 // 入库列表：分页/搜索/导出
 app.get('/api/admin/inbound', authenticateToken, requireAdmin, (req, res) => {
-  const { search = '', status = '', startDate = '', endDate = '', export: exp } = req.query;
+  const { search = '', status = '', startDate = '', endDate = '', export: exp, sort } = req.query;
   const { page, pageSize, offset } = parsePagination(req);
-  const where = [];
-  const params = [];
+  const where = []; const params = [];
   if (search) { where.push('(ir.inbound_number LIKE ? OR p.name LIKE ? OR p.sku LIKE ? OR ir.supplier LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`); }
   if (status) { where.push('ir.status = ?'); params.push(status); }
   if (startDate) { where.push('ir.created_at >= ?'); params.push(startDate); }
   if (endDate) { where.push('ir.created_at <= ?'); params.push(endDate); }
   const whereSql = where.length ? ('WHERE ' + where.join(' AND ')) : '';
-  const baseSql = `SELECT ir.inbound_number, ir.supplier, ir.quantity, ir.inbound_time, ir.status, p.name as product_name, p.sku, ir.created_at
-                   FROM inbound_records ir LEFT JOIN products p ON ir.product_id = p.id ${whereSql} ORDER BY ir.created_at DESC`;
+  const orderBy = sanitizeSort(sort, ['inbound_number','supplier','quantity','created_at','status'], 'created_at DESC');
+  const baseSql = `SELECT ir.inbound_number, ir.supplier, ir.quantity, ir.created_at, ir.status, p.name as product_name, p.sku
+                   FROM inbound_records ir LEFT JOIN products p ON ir.product_id = p.id ${whereSql} ORDER BY ${orderBy}`;
   const pagedSql = `${baseSql} LIMIT ? OFFSET ?`;
   const runParams = exp === 'csv' ? params : params.concat([pageSize, offset]);
   db.all(exp === 'csv' ? baseSql : pagedSql, runParams, (err, rows) => {
     if (err) return res.status(500).json({ error: '获取入库记录失败' });
     if (exp === 'csv') return sendCsv(res, 'inbound.csv', rows);
-    // total
     db.get(`SELECT COUNT(1) as cnt FROM inbound_records ir LEFT JOIN products p ON ir.product_id = p.id ${whereSql}`, params, (e2, r2) => {
       const total = r2 ? r2.cnt || 0 : 0;
       res.json({ page, pageSize, total, rows });
@@ -184,17 +191,17 @@ app.get('/api/admin/inbound', authenticateToken, requireAdmin, (req, res) => {
 
 // 出库列表
 app.get('/api/admin/outbound', authenticateToken, requireAdmin, (req, res) => {
-  const { search = '', status = '', startDate = '', endDate = '', export: exp } = req.query;
+  const { search = '', status = '', startDate = '', endDate = '', export: exp, sort } = req.query;
   const { page, pageSize, offset } = parsePagination(req);
-  const where = [];
-  const params = [];
+  const where = []; const params = [];
   if (search) { where.push('(ob.outbound_number LIKE ? OR p.name LIKE ? OR ob.customer LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
   if (status) { where.push('ob.status = ?'); params.push(status); }
   if (startDate) { where.push('ob.created_at >= ?'); params.push(startDate); }
   if (endDate) { where.push('ob.created_at <= ?'); params.push(endDate); }
   const whereSql = where.length ? ('WHERE ' + where.join(' AND ')) : '';
-  const baseSql = `SELECT ob.outbound_number, ob.customer, ob.quantity, ob.destination, ob.outbound_time, ob.status, p.name as product_name, p.sku, ob.created_at
-                   FROM outbound_records ob LEFT JOIN products p ON ob.product_id = p.id ${whereSql} ORDER BY ob.created_at DESC`;
+  const orderBy = sanitizeSort(sort, ['outbound_number','customer','quantity','created_at','status'], 'created_at DESC');
+  const baseSql = `SELECT ob.outbound_number, ob.customer, ob.quantity, ob.created_at, ob.status, p.name as product_name, p.sku
+                   FROM outbound_records ob LEFT JOIN products p ON ob.product_id = p.id ${whereSql} ORDER BY ${orderBy}`;
   const pagedSql = `${baseSql} LIMIT ? OFFSET ?`;
   const runParams = exp === 'csv' ? params : params.concat([pageSize, offset]);
   db.all(exp === 'csv' ? baseSql : pagedSql, runParams, (err, rows) => {
@@ -209,16 +216,16 @@ app.get('/api/admin/outbound', authenticateToken, requireAdmin, (req, res) => {
 
 // 库存列表
 app.get('/api/admin/inventory', authenticateToken, requireAdmin, (req, res) => {
-  const { search = '', category = '', status = '', export: exp } = req.query;
+  const { search = '', category = '', export: exp, sort } = req.query;
   const { page, pageSize, offset } = parsePagination(req);
-  const where = [];
-  const params = [];
+  const where = []; const params = [];
   if (search) { where.push('(p.name LIKE ? OR p.sku LIKE ? OR p.description LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
   if (category) { where.push('p.category = ?'); params.push(category); }
+  const orderBy = sanitizeSort(sort, ['p.sku','p.name','p.category','i.current_stock','p.safety_stock','stock_status','p.created_at'], 'p.created_at DESC');
   const baseSql = `SELECT p.sku, p.name, p.category, p.safety_stock, i.current_stock, i.available_stock, i.reserved_stock, i.last_updated,
                   CASE WHEN i.current_stock > p.safety_stock THEN 'in-stock' WHEN i.current_stock > 0 THEN 'low-stock' ELSE 'out-of-stock' END as stock_status
                   FROM products p LEFT JOIN inventory i ON p.id = i.product_id ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
-                  ORDER BY p.created_at DESC`;
+                  ORDER BY ${orderBy}`;
   const pagedSql = `${baseSql} LIMIT ? OFFSET ?`;
   const runParams = exp === 'csv' ? params : params.concat([pageSize, offset]);
   db.all(exp === 'csv' ? baseSql : pagedSql, runParams, (err, rows) => {
@@ -233,17 +240,17 @@ app.get('/api/admin/inventory', authenticateToken, requireAdmin, (req, res) => {
 
 // 订单列表
 app.get('/api/admin/orders', authenticateToken, requireAdmin, (req, res) => {
-  const { search = '', status = '', startDate = '', endDate = '', export: exp } = req.query;
+  const { search = '', status = '', startDate = '', endDate = '', export: exp, sort } = req.query;
   const { page, pageSize, offset } = parsePagination(req);
-  const where = [];
-  const params = [];
+  const where = []; const params = [];
   if (search) { where.push('(o.order_number LIKE ? OR o.customer_name LIKE ? OR o.customer_phone LIKE ? OR o.customer_address LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`); }
   if (status) { where.push('o.status = ?'); params.push(status); }
   if (startDate) { where.push('o.created_at >= ?'); params.push(startDate); }
   if (endDate) { where.push('o.created_at <= ?'); params.push(endDate); }
   const whereSql = where.length ? ('WHERE ' + where.join(' AND ')) : '';
+  const orderBy = sanitizeSort(sort, ['order_number','customer_name','total_weight','total_amount','service_type','created_at','status'], 'created_at DESC');
   const baseSql = `SELECT o.order_number, o.customer_name, o.total_weight, o.total_amount, o.service_type, o.status, o.created_at
-                   FROM orders o ${whereSql} ORDER BY o.created_at DESC`;
+                   FROM orders o ${whereSql} ORDER BY ${orderBy}`;
   const pagedSql = `${baseSql} LIMIT ? OFFSET ?`;
   const runParams = exp === 'csv' ? params : params.concat([pageSize, offset]);
   db.all(exp === 'csv' ? baseSql : pagedSql, runParams, (err, rows) => {

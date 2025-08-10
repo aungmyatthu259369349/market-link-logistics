@@ -247,8 +247,16 @@
                         <input type="date" id="inbound-date-start">
                         <input type="date" id="inbound-date-end">
                     </div>
+                    <div class="filter-group">
+                        <label>每页</label>
+                        <select id="inbound-page-size" onchange="setInboundPageSize(this.value)">
+                            <option>10</option>
+                            <option>20</option>
+                            <option>50</option>
+                        </select>
+                    </div>
                     <div style="display:flex; gap:10px; align-items:flex-end;">
-                        <button class="btn btn-secondary" onclick="filterInbound()">
+                        <button class="btn btn-secondary" onclick="filterInbound(1)">
                             <i class="fas fa-search"></i> 筛选
                         </button>
                         <button class="btn btn-primary" onclick="exportInboundCsv()">
@@ -261,11 +269,11 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>入库单号</th>
-                                <th>供应商</th>
-                                <th>商品数量</th>
-                                <th>入库时间</th>
-                                <th>状态</th>
+                                <th onclick="sortInbound('inbound_number')">入库单号</th>
+                                <th onclick="sortInbound('supplier')">供应商</th>
+                                <th onclick="sortInbound('quantity')">商品数量</th>
+                                <th onclick="sortInbound('created_at')">创建时间</th>
+                                <th onclick="sortInbound('status')">状态</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
@@ -305,8 +313,16 @@
                         <input type="date" id="outbound-date-start">
                         <input type="date" id="outbound-date-end">
                     </div>
+                    <div class="filter-group">
+                        <label>每页</label>
+                        <select id="outbound-page-size" onchange="setOutboundPageSize(this.value)">
+                            <option>10</option>
+                            <option>20</option>
+                            <option>50</option>
+                        </select>
+                    </div>
                     <div style="display:flex; gap:10px; align-items:flex-end;">
-                        <button class="btn btn-secondary" onclick="filterOutbound()">
+                        <button class="btn btn-secondary" onclick="filterOutbound(1)">
                             <i class="fas fa-search"></i> 筛选
                         </button>
                         <button class="btn btn-primary" onclick="exportOutboundCsv()">
@@ -319,11 +335,11 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>出库单号</th>
-                                <th>客户</th>
-                                <th>商品数量</th>
-                                <th>出库时间</th>
-                                <th>状态</th>
+                                <th onclick="sortOutbound('outbound_number')">出库单号</th>
+                                <th onclick="sortOutbound('customer')">客户</th>
+                                <th onclick="sortOutbound('quantity')">商品数量</th>
+                                <th onclick="sortOutbound('created_at')">创建时间</th>
+                                <th onclick="sortOutbound('status')">状态</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
@@ -357,8 +373,16 @@
                             <option value="food">食品</option>
                         </select>
                     </div>
+                    <div class="filter-group">
+                        <label>每页</label>
+                        <select id="inventory-page-size" onchange="setInventoryPageSize(this.value)">
+                            <option>10</option>
+                            <option>20</option>
+                            <option>50</option>
+                        </select>
+                    </div>
                     <div style="display:flex; gap:10px; align-items:flex-end;">
-                        <button class="btn btn-secondary" onclick="filterInventory()">
+                        <button class="btn btn-secondary" onclick="filterInventory(1)">
                             <i class="fas fa-search"></i> 筛选
                         </button>
                         <button class="btn btn-primary" onclick="exportInventoryCsv()">
@@ -371,12 +395,12 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>商品编码</th>
-                                <th>商品名称</th>
-                                <th>分类</th>
-                                <th>当前库存</th>
-                                <th>安全库存</th>
-                                <th>状态</th>
+                                <th onclick="sortInventory('p.sku')">商品编码</th>
+                                <th onclick="sortInventory('p.name')">商品名称</th>
+                                <th onclick="sortInventory('p.category')">分类</th>
+                                <th onclick="sortInventory('i.current_stock')">当前库存</th>
+                                <th onclick="sortInventory('p.safety_stock')">安全库存</th>
+                                <th onclick="sortInventory('stock_status')">状态</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
@@ -416,8 +440,16 @@
                         <input type="date" id="order-date-start">
                         <input type="date" id="order-date-end">
                     </div>
+                    <div class="filter-group">
+                        <label>每页</label>
+                        <select id="orders-page-size" onchange="setOrdersPageSize(this.value)">
+                            <option>10</option>
+                            <option>20</option>
+                            <option>50</option>
+                        </select>
+                    </div>
                     <div style="display:flex; gap:10px; align-items:flex-end;">
-                        <button class="btn btn-secondary" onclick="filterOrders()">
+                        <button class="btn btn-secondary" onclick="filterOrders(1)">
                             <i class="fas fa-search"></i> 筛选
                         </button>
                         <button class="btn btn-primary" onclick="exportOrdersCsv()">
@@ -430,12 +462,13 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>订单号</th>
-                                <th>客户</th>
-                                <th>商品</th>
-                                <th>数量</th>
-                                <th>总金额</th>
-                                <th>状态</th>
+                                <th onclick="sortOrders('order_number')">订单号</th>
+                                <th onclick="sortOrders('customer_name')">客户</th>
+                                <th onclick="sortOrders('service_type')">服务</th>
+                                <th onclick="sortOrders('total_weight')">重量</th>
+                                <th onclick="sortOrders('total_amount')">总金额</th>
+                                <th onclick="sortOrders('created_at')">创建时间</th>
+                                <th onclick="sortOrders('status')">状态</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
