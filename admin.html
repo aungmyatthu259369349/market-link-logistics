@@ -230,6 +230,10 @@
                 
                 <div class="filters">
                     <div class="filter-group">
+                        <label>关键字</label>
+                        <input type="text" id="inbound-search" placeholder="入库单号/供应商/商品SKU/名称">
+                    </div>
+                    <div class="filter-group">
                         <label>状态筛选</label>
                         <select id="inbound-status-filter">
                             <option value="">全部状态</option>
@@ -243,9 +247,14 @@
                         <input type="date" id="inbound-date-start">
                         <input type="date" id="inbound-date-end">
                     </div>
-                    <button class="btn btn-secondary" onclick="filterInbound()">
-                        <i class="fas fa-search"></i> 筛选
-                    </button>
+                    <div style="display:flex; gap:10px; align-items:flex-end;">
+                        <button class="btn btn-secondary" onclick="filterInbound()">
+                            <i class="fas fa-search"></i> 筛选
+                        </button>
+                        <button class="btn btn-primary" onclick="exportInboundCsv()">
+                            <i class="fas fa-download"></i> 导出CSV
+                        </button>
+                    </div>
                 </div>
 
                 <div class="table-container">
@@ -261,30 +270,9 @@
                             </tr>
                         </thead>
                         <tbody id="inbound-table-body">
-                            <tr>
-                                <td>IN2024001</td>
-                                <td>上海贸易公司</td>
-                                <td>150件</td>
-                                <td>2024-01-15 14:30</td>
-                                <td><span class="status-badge completed">已完成</span></td>
-                                <td>
-                                    <button class="btn btn-small" onclick="viewInbound('IN2024001')">查看</button>
-                                    <button class="btn btn-small btn-secondary" onclick="editInbound('IN2024001')">编辑</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>IN2024002</td>
-                                <td>广州物流公司</td>
-                                <td>89件</td>
-                                <td>2024-01-15 16:45</td>
-                                <td><span class="status-badge processing">处理中</span></td>
-                                <td>
-                                    <button class="btn btn-small" onclick="viewInbound('IN2024002')">查看</button>
-                                    <button class="btn btn-small btn-secondary" onclick="editInbound('IN2024002')">编辑</button>
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
+                    <div id="inbound-pagination" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;"></div>
                 </div>
             </div>
 
@@ -298,6 +286,10 @@
                 </div>
                 
                 <div class="filters">
+                    <div class="filter-group">
+                        <label>关键字</label>
+                        <input type="text" id="outbound-search" placeholder="出库单号/客户/商品名称">
+                    </div>
                     <div class="filter-group">
                         <label>状态筛选</label>
                         <select id="outbound-status-filter">
@@ -313,9 +305,14 @@
                         <input type="date" id="outbound-date-start">
                         <input type="date" id="outbound-date-end">
                     </div>
-                    <button class="btn btn-secondary" onclick="filterOutbound()">
-                        <i class="fas fa-search"></i> 筛选
-                    </button>
+                    <div style="display:flex; gap:10px; align-items:flex-end;">
+                        <button class="btn btn-secondary" onclick="filterOutbound()">
+                            <i class="fas fa-search"></i> 筛选
+                        </button>
+                        <button class="btn btn-primary" onclick="exportOutboundCsv()">
+                            <i class="fas fa-download"></i> 导出CSV
+                        </button>
+                    </div>
                 </div>
 
                 <div class="table-container">
@@ -331,30 +328,9 @@
                             </tr>
                         </thead>
                         <tbody id="outbound-table-body">
-                            <tr>
-                                <td>OUT2024001</td>
-                                <td>北京科技有限公司</td>
-                                <td>25件</td>
-                                <td>2024-01-15 09:15</td>
-                                <td><span class="status-badge processing">处理中</span></td>
-                                <td>
-                                    <button class="btn btn-small" onclick="viewOutbound('OUT2024001')">查看</button>
-                                    <button class="btn btn-small btn-secondary" onclick="editOutbound('OUT2024001')">编辑</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>OUT2024002</td>
-                                <td>深圳电子公司</td>
-                                <td>100件</td>
-                                <td>2024-01-15 11:30</td>
-                                <td><span class="status-badge shipped">已发货</span></td>
-                                <td>
-                                    <button class="btn btn-small" onclick="viewOutbound('OUT2024002')">查看</button>
-                                    <button class="btn btn-small btn-secondary" onclick="editOutbound('OUT2024002')">编辑</button>
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
+                    <div id="outbound-pagination" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;"></div>
                 </div>
             </div>
 
@@ -369,6 +345,10 @@
                 
                 <div class="filters">
                     <div class="filter-group">
+                        <label>关键字</label>
+                        <input type="text" id="inventory-search" placeholder="SKU/商品名称/描述">
+                    </div>
+                    <div class="filter-group">
                         <label>商品分类</label>
                         <select id="inventory-category-filter">
                             <option value="">全部分类</option>
@@ -377,18 +357,14 @@
                             <option value="food">食品</option>
                         </select>
                     </div>
-                    <div class="filter-group">
-                        <label>库存状态</label>
-                        <select id="inventory-status-filter">
-                            <option value="">全部状态</option>
-                            <option value="in-stock">有库存</option>
-                            <option value="low-stock">库存不足</option>
-                            <option value="out-of-stock">缺货</option>
-                        </select>
+                    <div style="display:flex; gap:10px; align-items:flex-end;">
+                        <button class="btn btn-secondary" onclick="filterInventory()">
+                            <i class="fas fa-search"></i> 筛选
+                        </button>
+                        <button class="btn btn-primary" onclick="exportInventoryCsv()">
+                            <i class="fas fa-download"></i> 导出CSV
+                        </button>
                     </div>
-                    <button class="btn btn-secondary" onclick="filterInventory()">
-                        <i class="fas fa-search"></i> 筛选
-                    </button>
                 </div>
 
                 <div class="table-container">
@@ -405,32 +381,9 @@
                             </tr>
                         </thead>
                         <tbody id="inventory-table-body">
-                            <tr>
-                                <td>SKU001</td>
-                                <td>iPhone 15 Pro</td>
-                                <td>电子产品</td>
-                                <td>150</td>
-                                <td>50</td>
-                                <td><span class="status-badge in-stock">有库存</span></td>
-                                <td>
-                                    <button class="btn btn-small" onclick="viewInventory('SKU001')">查看</button>
-                                    <button class="btn btn-small btn-secondary" onclick="editInventory('SKU001')">编辑</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>SKU002</td>
-                                <td>MacBook Air</td>
-                                <td>电子产品</td>
-                                <td>25</td>
-                                <td>30</td>
-                                <td><span class="status-badge low-stock">库存不足</span></td>
-                                <td>
-                                    <button class="btn btn-small" onclick="viewInventory('SKU002')">查看</button>
-                                    <button class="btn btn-small btn-secondary" onclick="editInventory('SKU002')">编辑</button>
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
+                    <div id="inventory-pagination" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;"></div>
                 </div>
             </div>
 
@@ -444,6 +397,10 @@
                 </div>
                 
                 <div class="filters">
+                    <div class="filter-group">
+                        <label>关键字</label>
+                        <input type="text" id="orders-search" placeholder="订单号/客户/电话/地址">
+                    </div>
                     <div class="filter-group">
                         <label>订单状态</label>
                         <select id="order-status-filter">
@@ -459,9 +416,14 @@
                         <input type="date" id="order-date-start">
                         <input type="date" id="order-date-end">
                     </div>
-                    <button class="btn btn-secondary" onclick="filterOrders()">
-                        <i class="fas fa-search"></i> 筛选
-                    </button>
+                    <div style="display:flex; gap:10px; align-items:flex-end;">
+                        <button class="btn btn-secondary" onclick="filterOrders()">
+                            <i class="fas fa-search"></i> 筛选
+                        </button>
+                        <button class="btn btn-primary" onclick="exportOrdersCsv()">
+                            <i class="fas fa-download"></i> 导出CSV
+                        </button>
+                    </div>
                 </div>
 
                 <div class="table-container">
@@ -478,20 +440,9 @@
                             </tr>
                         </thead>
                         <tbody id="orders-table-body">
-                            <tr>
-                                <td>ORD2024001</td>
-                                <td>北京科技有限公司</td>
-                                <td>iPhone 15 Pro</td>
-                                <td>5</td>
-                                <td>¥45,000</td>
-                                <td><span class="status-badge processing">处理中</span></td>
-                                <td>
-                                    <button class="btn btn-small" onclick="viewOrder('ORD2024001')">查看</button>
-                                    <button class="btn btn-small btn-secondary" onclick="editOrder('ORD2024001')">编辑</button>
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
+                    <div id="orders-pagination" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;"></div>
                 </div>
             </div>
 

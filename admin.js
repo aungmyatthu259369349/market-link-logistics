@@ -562,45 +562,165 @@ function performSearch(query) {
     // 实现搜索逻辑
 }
 
-// 筛选入库数据
-function filterInbound() {
-    const status = document.getElementById('inbound-status-filter')?.value;
-    const startDate = document.getElementById('inbound-date-start')?.value;
-    const endDate = document.getElementById('inbound-date-end')?.value;
-    
-    console.log('筛选入库:', { status, startDate, endDate });
-    // 实现筛选逻辑
+function buildPagination(elId, page, pageSize, total, onPage) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const prev = Math.max(1, page - 1);
+  const next = Math.min(pages, page + 1);
+  el.innerHTML = `
+    <button class="btn btn-small" ${page===1?'disabled':''} onclick="${onPage}(${prev})">上一页</button>
+    <span style="padding:0 8px;">第 ${page} / ${pages} 页，共 ${total} 条</span>
+    <button class="btn btn-small" ${page===pages?'disabled':''} onclick="${onPage}(${next})">下一页</button>
+  `;
 }
 
-// 筛选出库数据
-function filterOutbound() {
-    const status = document.getElementById('outbound-status-filter')?.value;
-    const startDate = document.getElementById('outbound-date-start')?.value;
-    const endDate = document.getElementById('outbound-date-end')?.value;
-    
-    console.log('筛选出库:', { status, startDate, endDate });
-    // 实现筛选逻辑
+// 入库
+let inboundPage = 1, inboundPageSize = 10;
+function filterInbound(page){ inboundPage = page || inboundPage; loadInboundData(); }
+function exportInboundCsv(){
+  const search = document.getElementById('inbound-search')?.value || '';
+  const status = document.getElementById('inbound-status-filter')?.value || '';
+  const startDate = document.getElementById('inbound-date-start')?.value || '';
+  const endDate = document.getElementById('inbound-date-end')?.value || '';
+  const qs = new URLSearchParams({ search, status, startDate, endDate, export:'csv' }).toString();
+  window.open(`/api/admin/inbound?${qs}`, '_blank');
+}
+function loadInboundData(){
+  const search = document.getElementById('inbound-search')?.value || '';
+  const status = document.getElementById('inbound-status-filter')?.value || '';
+  const startDate = document.getElementById('inbound-date-start')?.value || '';
+  const endDate = document.getElementById('inbound-date-end')?.value || '';
+  const qs = new URLSearchParams({ page: inboundPage, pageSize: inboundPageSize, search, status, startDate, endDate }).toString();
+  fetch(`/api/admin/inbound?${qs}`, { headers: authHeader() })
+    .then(r=>r.json()).then(d=>{
+      const tbody = document.getElementById('inbound-table-body');
+      tbody.innerHTML = (d.rows||[]).map(r => `
+        <tr>
+          <td>${r.inbound_number||''}</td>
+          <td>${r.supplier||''}</td>
+          <td>${r.quantity||''}</td>
+          <td>${r.inbound_time||''}</td>
+          <td><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
+          <td>
+            <button class="btn btn-small" onclick="viewInbound('${r.inbound_number||''}')">查看</button>
+          </td>
+        </tr>`).join('');
+      buildPagination('inbound-pagination', d.page, d.pageSize, d.total, 'filterInbound');
+    });
 }
 
-// 筛选库存数据
-function filterInventory() {
-    const category = document.getElementById('inventory-category-filter')?.value;
-    const status = document.getElementById('inventory-status-filter')?.value;
-    
-    console.log('筛选库存:', { category, status });
-    // 实现筛选逻辑
+// 出库
+let outboundPage = 1, outboundPageSize = 10;
+function filterOutbound(page){ outboundPage = page || outboundPage; loadOutboundData(); }
+function exportOutboundCsv(){
+  const search = document.getElementById('outbound-search')?.value || '';
+  const status = document.getElementById('outbound-status-filter')?.value || '';
+  const startDate = document.getElementById('outbound-date-start')?.value || '';
+  const endDate = document.getElementById('outbound-date-end')?.value || '';
+  const qs = new URLSearchParams({ search, status, startDate, endDate, export:'csv' }).toString();
+  window.open(`/api/admin/outbound?${qs}`, '_blank');
+}
+function loadOutboundData(){
+  const search = document.getElementById('outbound-search')?.value || '';
+  const status = document.getElementById('outbound-status-filter')?.value || '';
+  const startDate = document.getElementById('outbound-date-start')?.value || '';
+  const endDate = document.getElementById('outbound-date-end')?.value || '';
+  const qs = new URLSearchParams({ page: outboundPage, pageSize: outboundPageSize, search, status, startDate, endDate }).toString();
+  fetch(`/api/admin/outbound?${qs}`, { headers: authHeader() })
+    .then(r=>r.json()).then(d=>{
+      const tbody = document.getElementById('outbound-table-body');
+      tbody.innerHTML = (d.rows||[]).map(r => `
+        <tr>
+          <td>${r.outbound_number||''}</td>
+          <td>${r.customer||''}</td>
+          <td>${r.quantity||''}</td>
+          <td>${r.outbound_time||''}</td>
+          <td><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
+          <td>
+            <button class="btn btn-small" onclick="viewOutbound('${r.outbound_number||''}')">查看</button>
+          </td>
+        </tr>`).join('');
+      buildPagination('outbound-pagination', d.page, d.pageSize, d.total, 'filterOutbound');
+    });
 }
 
-// 筛选订单数据
-function filterOrders() {
-    const status = document.getElementById('order-status-filter')?.value;
-    const startDate = document.getElementById('order-date-start')?.value;
-    const endDate = document.getElementById('order-date-end')?.value;
-    
-    console.log('筛选订单:', { status, startDate, endDate });
-    // 实现筛选逻辑
+// 库存
+let inventoryPage = 1, inventoryPageSize = 10;
+function filterInventory(page){ inventoryPage = page || inventoryPage; loadInventoryData(); }
+function exportInventoryCsv(){
+  const search = document.getElementById('inventory-search')?.value || '';
+  const category = document.getElementById('inventory-category-filter')?.value || '';
+  const qs = new URLSearchParams({ search, category, export:'csv' }).toString();
+  window.open(`/api/admin/inventory?${qs}`, '_blank');
+}
+function loadInventoryData(){
+  const search = document.getElementById('inventory-search')?.value || '';
+  const category = document.getElementById('inventory-category-filter')?.value || '';
+  const qs = new URLSearchParams({ page: inventoryPage, pageSize: inventoryPageSize, search, category }).toString();
+  fetch(`/api/admin/inventory?${qs}`, { headers: authHeader() })
+    .then(r=>r.json()).then(d=>{
+      const tbody = document.getElementById('inventory-table-body');
+      tbody.innerHTML = (d.rows||[]).map(r => `
+        <tr>
+          <td>${r.sku||''}</td>
+          <td>${r.name||''}</td>
+          <td>${r.category||''}</td>
+          <td>${r.current_stock||0}</td>
+          <td>${r.safety_stock||0}</td>
+          <td><span class="status-badge ${r.stock_status||''}">${r.stock_status||''}</span></td>
+          <td>
+            <button class="btn btn-small" onclick="viewInventory('${r.sku||''}')">查看</button>
+          </td>
+        </tr>`).join('');
+      buildPagination('inventory-pagination', d.page, d.pageSize, d.total, 'filterInventory');
+    });
 }
 
+// 订单
+let ordersPage = 1, ordersPageSize = 10;
+function filterOrders(page){ ordersPage = page || ordersPage; loadOrdersData(); }
+function exportOrdersCsv(){
+  const search = document.getElementById('orders-search')?.value || '';
+  const status = document.getElementById('order-status-filter')?.value || '';
+  const startDate = document.getElementById('order-date-start')?.value || '';
+  const endDate = document.getElementById('order-date-end')?.value || '';
+  const qs = new URLSearchParams({ search, status, startDate, endDate, export:'csv' }).toString();
+  window.open(`/api/admin/orders?${qs}`, '_blank');
+}
+function loadOrdersData(){
+  const search = document.getElementById('orders-search')?.value || '';
+  const status = document.getElementById('order-status-filter')?.value || '';
+  const startDate = document.getElementById('order-date-start')?.value || '';
+  const endDate = document.getElementById('order-date-end')?.value || '';
+  const qs = new URLSearchParams({ page: ordersPage, pageSize: ordersPageSize, search, status, startDate, endDate }).toString();
+  fetch(`/api/admin/orders?${qs}`, { headers: authHeader() })
+    .then(r=>r.json()).then(d=>{
+      const tbody = document.getElementById('orders-table-body');
+      tbody.innerHTML = (d.rows||[]).map(r => `
+        <tr>
+          <td>${r.order_number||''}</td>
+          <td>${r.customer_name||''}</td>
+          <td>${r.service_type||''}</td>
+          <td>${r.total_weight||0}</td>
+          <td>¥${r.total_amount||0}</td>
+          <td><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
+          <td>
+            <button class="btn btn-small" onclick="viewOrder('${r.order_number||''}')">查看</button>
+          </td>
+        </tr>`).join('');
+      buildPagination('orders-pagination', d.page, d.pageSize, d.total, 'filterOrders');
+    });
+}
+
+function authHeader(){
+  const token = localStorage.getItem('adminToken');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
+// 初始化加载默认tab的数据
+// dashboard默认已有
+// 其它tab在切换时调用loadTabData，会触发上述加载
 // 查看入库详情
 function viewInbound(id) {
     console.log('查看入库详情:', id);
