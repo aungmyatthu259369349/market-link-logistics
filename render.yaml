@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     buildCommand: npm install
-    startCommand: npm run init-db && node server.js
+    startCommand: npm run init-db && npm run migrate:pg && node server.js
     envVars:
       - key: NODE_VERSION
         value: 18

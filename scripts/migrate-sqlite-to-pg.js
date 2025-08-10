@@ -22,6 +22,7 @@ if (!DATABASE_URL) {
 }
 
 const shouldTruncate = String(process.env.MIGRATE_TRUNCATE || 'true').toLowerCase() !== 'false';
+const forceMigrate = String(process.env.MIGRATE_FORCE || 'false').toLowerCase() === 'true';
 
 const sqlitePath = path.resolve(config.DB_PATH);
 if (!fs.existsSync(sqlitePath)) {
@@ -175,6 +176,15 @@ async function truncateTables() {
   await query(sql);
 }
 
+async function hasExistingData() {
+  try {
+    const r = await query('SELECT 1 FROM users LIMIT 1');
+    return r && r.rowCount > 0;
+  } catch (e) {
+    return false;
+  }
+}
+
 function selectAll(sqlite, table, columns) {
   return new Promise((resolve, reject) => {
     const sql = `SELECT ${columns.join(', ')} FROM ${table}`;
@@ -216,6 +226,11 @@ async function resetSequences() {
 async function migrate() {
   console.log('连接 PostgreSQL 成功，开始创建表结构...');
   await createPgSchema();
+  const exists = await hasExistingData();
+  if (exists && !forceMigrate) {
+    console.log('检测到 PostgreSQL 已有数据，跳过迁移（如需强制执行，设置 MIGRATE_FORCE=true）。');
+    return;
+  }
   if (shouldTruncate) {
     console.log('清空目标表（TRUNCATE）...');
     await truncateTables();
