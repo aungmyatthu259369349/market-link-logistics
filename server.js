@@ -168,7 +168,7 @@ function buildInPlaceholders(arr){ return arr.map(()=>'?').join(','); }
 
 // 入库列表：分页/搜索/导出
 app.get('/api/admin/inbound', authenticateToken, requireAdmin, (req, res) => {
-  const { search = '', status = '', startDate = '', endDate = '', export: exp, sort } = req.query;
+  const { search = '', status = '', startDate = '', endDate = '', export: exp, sort, scope = '' } = req.query;
   const { page, pageSize, offset } = parsePagination(req);
   const where = []; const params = [];
   if (search) { where.push('(ir.inbound_number LIKE ? OR p.name LIKE ? OR p.sku LIKE ? OR ir.supplier LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`); }
@@ -180,8 +180,9 @@ app.get('/api/admin/inbound', authenticateToken, requireAdmin, (req, res) => {
   const baseSql = `SELECT ir.inbound_number, ir.supplier, ir.quantity, ir.created_at, ir.status, p.name as product_name, p.sku
                    FROM inbound_records ir LEFT JOIN products p ON ir.product_id = p.id ${whereSql} ORDER BY ${orderBy}`;
   const pagedSql = `${baseSql} LIMIT ? OFFSET ?`;
-  const runParams = exp === 'csv' ? params : params.concat([pageSize, offset]);
-  db.all(exp === 'csv' ? baseSql : pagedSql, runParams, (err, rows) => {
+  const runSql = (exp === 'csv' && scope === 'page') ? pagedSql : baseSql;
+  const runParams = (exp === 'csv' && scope === 'page') ? params.concat([pageSize, offset]) : params;
+  db.all(runSql, runParams, (err, rows) => {
     if (err) return res.status(500).json({ error: '获取入库记录失败' });
     if (exp === 'csv') return sendCsv(res, 'inbound.csv', rows);
     db.get(`SELECT COUNT(1) as cnt FROM inbound_records ir LEFT JOIN products p ON ir.product_id = p.id ${whereSql}`, params, (e2, r2) => {
@@ -213,7 +214,7 @@ app.post('/api/admin/inbound/batch-delete', authenticateToken, requireAdmin, (re
 
 // 出库列表
 app.get('/api/admin/outbound', authenticateToken, requireAdmin, (req, res) => {
-  const { search = '', status = '', startDate = '', endDate = '', export: exp, sort } = req.query;
+  const { search = '', status = '', startDate = '', endDate = '', export: exp, sort, scope = '' } = req.query;
   const { page, pageSize, offset } = parsePagination(req);
   const where = []; const params = [];
   if (search) { where.push('(ob.outbound_number LIKE ? OR p.name LIKE ? OR ob.customer LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
@@ -225,8 +226,9 @@ app.get('/api/admin/outbound', authenticateToken, requireAdmin, (req, res) => {
   const baseSql = `SELECT ob.outbound_number, ob.customer, ob.quantity, ob.created_at, ob.status, p.name as product_name, p.sku
                    FROM outbound_records ob LEFT JOIN products p ON ob.product_id = p.id ${whereSql} ORDER BY ${orderBy}`;
   const pagedSql = `${baseSql} LIMIT ? OFFSET ?`;
-  const runParams = exp === 'csv' ? params : params.concat([pageSize, offset]);
-  db.all(exp === 'csv' ? baseSql : pagedSql, runParams, (err, rows) => {
+  const runSql = (exp === 'csv' && scope === 'page') ? pagedSql : baseSql;
+  const runParams = (exp === 'csv' && scope === 'page') ? params.concat([pageSize, offset]) : params;
+  db.all(runSql, runParams, (err, rows) => {
     if (err) return res.status(500).json({ error: '获取出库记录失败' });
     if (exp === 'csv') return sendCsv(res, 'outbound.csv', rows);
     db.get(`SELECT COUNT(1) as cnt FROM outbound_records ob LEFT JOIN products p ON ob.product_id = p.id ${whereSql}`, params, (e2, r2) => {
@@ -258,7 +260,7 @@ app.post('/api/admin/outbound/batch-delete', authenticateToken, requireAdmin, (r
 
 // 库存列表
 app.get('/api/admin/inventory', authenticateToken, requireAdmin, (req, res) => {
-  const { search = '', category = '', export: exp, sort } = req.query;
+  const { search = '', category = '', export: exp, sort, scope = '' } = req.query;
   const { page, pageSize, offset } = parsePagination(req);
   const where = []; const params = [];
   if (search) { where.push('(p.name LIKE ? OR p.sku LIKE ? OR p.description LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
@@ -269,8 +271,9 @@ app.get('/api/admin/inventory', authenticateToken, requireAdmin, (req, res) => {
                   FROM products p LEFT JOIN inventory i ON p.id = i.product_id ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
                   ORDER BY ${orderBy}`;
   const pagedSql = `${baseSql} LIMIT ? OFFSET ?`;
-  const runParams = exp === 'csv' ? params : params.concat([pageSize, offset]);
-  db.all(exp === 'csv' ? baseSql : pagedSql, runParams, (err, rows) => {
+  const runSql = (exp === 'csv' && scope === 'page') ? pagedSql : baseSql;
+  const runParams = (exp === 'csv' && scope === 'page') ? params.concat([pageSize, offset]) : params;
+  db.all(runSql, runParams, (err, rows) => {
     if (err) return res.status(500).json({ error: '获取库存信息失败' });
     if (exp === 'csv') return sendCsv(res, 'inventory.csv', rows);
     db.get(`SELECT COUNT(1) as cnt FROM products p LEFT JOIN inventory i ON p.id = i.product_id ${where.length ? 'WHERE ' + where.join(' AND ') : ''}`, params, (e2, r2) => {
@@ -282,7 +285,7 @@ app.get('/api/admin/inventory', authenticateToken, requireAdmin, (req, res) => {
 
 // 订单列表
 app.get('/api/admin/orders', authenticateToken, requireAdmin, (req, res) => {
-  const { search = '', status = '', startDate = '', endDate = '', export: exp, sort } = req.query;
+  const { search = '', status = '', startDate = '', endDate = '', export: exp, sort, scope = '' } = req.query;
   const { page, pageSize, offset } = parsePagination(req);
   const where = []; const params = [];
   if (search) { where.push('(o.order_number LIKE ? OR o.customer_name LIKE ? OR o.customer_phone LIKE ? OR o.customer_address LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`); }
@@ -294,8 +297,9 @@ app.get('/api/admin/orders', authenticateToken, requireAdmin, (req, res) => {
   const baseSql = `SELECT o.order_number, o.customer_name, o.total_weight, o.total_amount, o.service_type, o.status, o.created_at
                    FROM orders o ${whereSql} ORDER BY ${orderBy}`;
   const pagedSql = `${baseSql} LIMIT ? OFFSET ?`;
-  const runParams = exp === 'csv' ? params : params.concat([pageSize, offset]);
-  db.all(exp === 'csv' ? baseSql : pagedSql, runParams, (err, rows) => {
+  const runSql = (exp === 'csv' && scope === 'page') ? pagedSql : baseSql;
+  const runParams = (exp === 'csv' && scope === 'page') ? params.concat([pageSize, offset]) : params;
+  db.all(runSql, runParams, (err, rows) => {
     if (err) return res.status(500).json({ error: '获取订单失败' });
     if (exp === 'csv') return sendCsv(res, 'orders.csv', rows);
     db.get(`SELECT COUNT(1) as cnt FROM orders o ${whereSql}`, params, (e2, r2) => {

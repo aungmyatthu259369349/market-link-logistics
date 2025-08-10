@@ -836,6 +836,49 @@ function exportCsvRows(filename, rows){
   const a = document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
 }
 
+function exportWithScope(urlBase, params, scope, filename){
+  const qs = new URLSearchParams({ ...params, export:'csv', scope }).toString();
+  window.open(`${urlBase}?${qs}`, '_blank');
+}
+// 入库导出
+function exportInboundCsv(){
+  const search = document.getElementById('inbound-search')?.value || '';
+  const status = document.getElementById('inbound-status-filter')?.value || '';
+  const startDate = document.getElementById('inbound-date-start')?.value || '';
+  const endDate = document.getElementById('inbound-date-end')?.value || '';
+  const params = { search, status, startDate, endDate, sort: inboundSort, page: inboundPage, pageSize: inboundPageSize };
+  const scope = confirm('确定导出全部吗？点击“取消”仅导出当前页') ? '' : 'page';
+  exportWithScope('/api/admin/inbound', params, scope, 'inbound.csv');
+}
+// 出库导出
+function exportOutboundCsv(){
+  const search = document.getElementById('outbound-search')?.value || '';
+  const status = document.getElementById('outbound-status-filter')?.value || '';
+  const startDate = document.getElementById('outbound-date-start')?.value || '';
+  const endDate = document.getElementById('outbound-date-end')?.value || '';
+  const params = { search, status, startDate, endDate, sort: outboundSort, page: outboundPage, pageSize: outboundPageSize };
+  const scope = confirm('确定导出全部吗？点击“取消”仅导出当前页') ? '' : 'page';
+  exportWithScope('/api/admin/outbound', params, scope, 'outbound.csv');
+}
+// 库存导出
+function exportInventoryCsv(){
+  const search = document.getElementById('inventory-search')?.value || '';
+  const category = document.getElementById('inventory-category-filter')?.value || '';
+  const params = { search, category, sort: inventorySort, page: inventoryPage, pageSize: inventoryPageSize };
+  const scope = confirm('确定导出全部吗？点击“取消”仅导出当前页') ? '' : 'page';
+  exportWithScope('/api/admin/inventory', params, scope, 'inventory.csv');
+}
+// 订单导出
+function exportOrdersCsv(){
+  const search = document.getElementById('orders-search')?.value || '';
+  const status = document.getElementById('order-status-filter')?.value || '';
+  const startDate = document.getElementById('order-date-start')?.value || '';
+  const endDate = document.getElementById('order-date-end')?.value || '';
+  const params = { search, status, startDate, endDate, sort: ordersSort, page: ordersPage, pageSize: ordersPageSize };
+  const scope = confirm('确定导出全部吗？点击“取消”仅导出当前页') ? '' : 'page';
+  exportWithScope('/api/admin/orders', params, scope, 'orders.csv');
+}
+
 function exportInboundSelected(){
   const ids = collectSelected('inbound');
   const tbody = document.getElementById('inbound-table-body');
