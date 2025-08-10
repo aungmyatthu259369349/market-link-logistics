@@ -20,7 +20,16 @@ services:
         value: admin@marketlinklogistics.com
       - key: ALLOW_ADMIN_FALLBACK
         value: "false"
+      - key: DATABASE_URL
+        fromService:
+          type: pserv
+          name: marketlink-postgres
+          property: connectionString
     disks:
       - name: data
         mountPath: /data
-        sizeGB: 1 
+        sizeGB: 1
+
+postgres:
+  - name: marketlink-postgres
+    plan: free 
