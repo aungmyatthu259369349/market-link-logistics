@@ -144,6 +144,16 @@ const createTables = `
         notes TEXT,
         FOREIGN KEY (tracking_id) REFERENCES tracking (id)
     );
+
+    -- 密码重置表
+    CREATE TABLE IF NOT EXISTS password_resets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        token TEXT UNIQUE NOT NULL,
+        expires_at DATETIME NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id)
+    );
 `;
 
 // 执行数据库初始化

@@ -174,6 +174,51 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
+// 忘记密码（请求重置链接）
+app.post('/api/auth/forgot', (req, res) => {
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ error: '请输入邮箱' });
+  db.get('SELECT id FROM users WHERE email = ?', [email], (err, user) => {
+    if (err) return res.status(500).json({ error: '服务器错误' });
+    if (!user) return res.json({ success: true }); // 不暴露用户是否存在
+    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    db.run('INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)', [user.id, token, expiresAt], (e2) => {
+      if (e2) return res.status(500).json({ error: '服务器错误' });
+      // TODO: 发送邮件（此处先返回 token 方便前端调试）
+      return res.json({ success: true, token });
+    });
+  });
+});
+
+// 校验重置token
+app.get('/api/auth/reset/:token', (req, res) => {
+  const { token } = req.params;
+  db.get('SELECT pr.user_id, u.email, pr.expires_at FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?', [token], (err, row) => {
+    if (err) return res.status(500).json({ error: '服务器错误' });
+    if (!row) return res.status(404).json({ error: '链接无效' });
+    if (new Date(row.expires_at).getTime() < Date.now()) return res.status(400).json({ error: '链接已过期' });
+    res.json({ success: true, email: row.email });
+  });
+});
+
+// 提交新密码
+app.post('/api/auth/reset/:token', async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body || {};
+  if (!password || password.length < 6) return res.status(400).json({ error: '密码至少6位' });
+  db.get('SELECT user_id, expires_at FROM password_resets WHERE token = ?', [token], async (err, row) => {
+    if (err) return res.status(500).json({ error: '服务器错误' });
+    if (!row) return res.status(404).json({ error: '链接无效' });
+    if (new Date(row.expires_at).getTime() < Date.now()) return res.status(400).json({ error: '链接已过期' });
+    const hashed = await bcrypt.hash(password, 10);
+    db.run('UPDATE users SET password = ? WHERE id = ?', [hashed, row.user_id], (e2) => {
+      if (e2) return res.status(500).json({ error: '服务器错误' });
+      db.run('DELETE FROM password_resets WHERE token = ?', [token], () => res.json({ success: true }));
+    });
+  });
+});
+
 // ==================== 包裹跟踪API ====================
 
 // 获取跟踪信息
