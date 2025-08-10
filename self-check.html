@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>系统自检 - MARKET LINK LOGISTICS</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    body{font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin:20px; color:#222}
+    .card{border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:16px}
+    .ok{color:#16a34a} .warn{color:#f59e0b} .err{color:#dc2626}
+    code{background:#f3f4f6; padding:2px 4px; border-radius:4px}
+  </style>
+</head>
+<body>
+  <h1>系统自检</h1>
+  <div class="card">
+    <h3>健康</h3>
+    <pre id="health">加载中...</pre>
+  </div>
+  <div class="card">
+    <h3>版本</h3>
+    <pre id="version">加载中...</pre>
+  </div>
+  <div class="card">
+    <h3>自检</h3>
+    <pre id="self">加载中...</pre>
+  </div>
+  <div class="card">
+    <h3>环境变量建议</h3>
+    <ul>
+      <li>ORIGIN_WHITELIST（你的域名,onrender域名）</li>
+      <li>PUBLIC_URL（你的站点URL）</li>
+      <li>DATABASE_URL（Postgres）</li>
+      <li>MAIL_HOST/MAIL_PORT/MAIL_USER/MAIL_API_KEY/MAIL_FROM（邮件）</li>
+      <li>BACKUPS_DIR/BACKUP_RETENTION_DAYS（备份）</li>
+    </ul>
+  </div>
+  <script>
+    Promise.all([
+      fetch('/api/health').then(r=>r.json()).catch(e=>({error:String(e)})),
+      fetch('/api/version').then(r=>r.json()).catch(e=>({error:String(e)})),
+      fetch('/api/self-check').then(r=>r.json()).catch(e=>({error:String(e)})),
+    ]).then(([h,v,s])=>{
+      document.getElementById('health').textContent = JSON.stringify(h,null,2);
+      document.getElementById('version').textContent = JSON.stringify(v,null,2);
+      document.getElementById('self').textContent = JSON.stringify(s,null,2);
+    });
+  </script>
+</body>
+</html>

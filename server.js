@@ -402,6 +402,15 @@ app.get('/api/admin/inventory/:sku', requireAuth, requireAdmin, (req, res) => {
   });
 });
 
+// 自检接口：DB与邮件配置
+app.get('/api/self-check', async (req, res) => {
+  const out = { ok: true, driver: db.isPg ? 'pg' : 'sqlite', mailConfigured: !!(process.env.MAIL_FROM && process.env.MAIL_API_KEY) };
+  await new Promise(resolve => {
+    db.get('SELECT 1 as up', [], (e, r) => { out.db = e ? { ok:false, error: String(e) } : { ok:true }; resolve(); });
+  });
+  res.json(out);
+});
+
 // 静态页面
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/client', (req, res) => res.sendFile(path.join(__dirname, 'client.html')));
