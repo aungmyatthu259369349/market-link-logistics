@@ -11,10 +11,16 @@ services:
       - key: JWT_SECRET
         value: marketlink_logistics_secret_key_2024
       - key: DB_PATH
-        value: ./database/logistics.db
+        value: /data/logistics.db
       - key: ADMIN_USERNAME
         value: admin
       - key: ADMIN_PASSWORD
         value: admin123
       - key: ADMIN_EMAIL
-        value: admin@marketlinklogistics.com 
+        value: admin@marketlinklogistics.com
+      - key: ALLOW_ADMIN_FALLBACK
+        value: "false"
+    disks:
+      - name: data
+        mountPath: /data
+        sizeGB: 1 
