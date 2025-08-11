@@ -44,6 +44,7 @@ app.use(cookieParser());
 // 在 Render/生产环境下使用 Postgres 存储会话
 const usePgSession = !!process.env.DATABASE_URL;
 app.set('trust proxy', 1);
+const isProd = (process.env.NODE_ENV === 'production') || (process.env.RENDER === 'true') || !!process.env.DYNO;
 app.use(session({
   name: 'mlsid',
   store: usePgSession ? new PgSession({
@@ -58,8 +59,8 @@ app.use(session({
   rolling: true,
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     maxAge: (parseInt(process.env.SESSION_MAX_AGE_MINUTES || '30',10))*60*1000
   }
 }));

@@ -28,7 +28,7 @@ services:
       - key: ORIGIN_WHITELIST
         value: "https://your-domain.com,https://your-onrender-url.onrender.com"
       - key: PUBLIC_URL
-        value: "https://your-domain.com"
+        value: "https://market-link-logistics.onrender.com"
       - key: MAIL_HOST
         value: smtp.sendgrid.net
       - key: MAIL_PORT
