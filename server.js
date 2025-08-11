@@ -347,6 +347,11 @@ app.post('/api/admin/inbound', requireAuth, requireAdmin, (req, res) => {
     return res.status(400).json({ error: '参数不完整' });
   }
   const createdBy = req.session.user?.id || null;
+  // 规范化日期（仅日期则补 00:00:00）
+  let inboundAt = inboundTime || new Date().toISOString();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(inboundAt))) {
+    inboundAt = `${inboundAt}T00:00:00Z`;
+  }
   // 1) 确认/创建商品
   db.get('SELECT id FROM products WHERE name = ?', [productName], (e1, p) => {
     if (e1) return res.status(500).json({ error: '服务器错误' });
@@ -367,7 +372,7 @@ app.post('/api/admin/inbound', requireAuth, requireAdmin, (req, res) => {
       const sql = `INSERT INTO inbound_records (inbound_number, supplier, product_id, quantity, status, inbound_time, notes, created_by)
                    VALUES (?, ?, ?, ?, 'completed', ?, ?, ?)`;
       const qty = parseInt(quantity,10)||0;
-      db.insert(sql, [inboundNumber || null, supplier, productId, qty, inboundTime || new Date().toISOString(), notes || '', createdBy], (e4) => {
+      db.insert(sql, [inboundNumber || null, supplier, productId, qty, inboundAt, notes || '', createdBy], (e4) => {
         if (e4) return res.status(500).json({ error: '创建入库失败' });
         // 若运行在 SQLite（本地），没有触发器，手动同步库存
         if (!db.isPg) {

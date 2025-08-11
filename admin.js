@@ -288,7 +288,7 @@ function createInboundForm() {
                 </div>
                 <div class="form-group">
                     <label>入库时间</label>
-                    <input type="datetime-local" name="inboundTime" required>
+                    <input type="date" name="inboundTime" required>
                 </div>
             </div>
             <div class="form-group">
@@ -330,7 +330,7 @@ function createOutboundForm() {
                 </div>
                 <div class="form-group">
                     <label>出库时间</label>
-                    <input type="datetime-local" name="outboundTime" required>
+                    <input type="date" name="outboundTime" required>
                 </div>
             </div>
             <div class="form-group">

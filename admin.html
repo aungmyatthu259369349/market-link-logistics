@@ -265,15 +265,6 @@
                         <button class="btn btn-primary" onclick="exportInboundSelected()">
                             <i class="fas fa-check-double"></i> 导出选中
                         </button>
-                        <button class="btn btn-secondary" onclick="batchUpdateStatus('inbound','/api/admin/inbound/batch-status','completed')">
-                            <i class="fas fa-check"></i> 批量设为完成
-                        </button>
-                        <button class="btn btn-secondary" onclick="batchUpdateStatus('inbound','/api/admin/inbound/batch-status','processing')">
-                            <i class="fas fa-spinner"></i> 批量设为处理中
-                        </button>
-                        <button class="btn btn-outline" onclick="batchDelete('inbound','/api/admin/inbound/batch-delete')">
-                            <i class="fas fa-trash"></i> 批量删除
-                        </button>
                     </div>
                 </div>
 
@@ -355,15 +346,6 @@
                         </button>
                         <button class="btn btn-primary" onclick="exportOutboundSelected()">
                             <i class="fas fa-check-double"></i> 导出选中
-                        </button>
-                        <button class="btn btn-secondary" onclick="batchUpdateStatus('outbound','/api/admin/outbound/batch-status','shipped')">
-                            <i class="fas fa-truck"></i> 批量设为已发货
-                        </button>
-                        <button class="btn btn-secondary" onclick="batchUpdateStatus('outbound','/api/admin/outbound/batch-status','completed')">
-                            <i class="fas fa-check"></i> 批量设为完成
-                        </button>
-                        <button class="btn btn-outline" onclick="batchDelete('outbound','/api/admin/outbound/batch-delete')">
-                            <i class="fas fa-trash"></i> 批量删除
                         </button>
                     </div>
                 </div>
@@ -524,15 +506,6 @@
                         </button>
                         <button class="btn btn-primary" onclick="exportOrdersSelected()">
                             <i class="fas fa-check-double"></i> 导出选中
-                        </button>
-                        <button class="btn btn-secondary" onclick="batchUpdateStatus('orders','/api/admin/orders/batch-status','shipped')">
-                            <i class="fas fa-truck"></i> 批量设为已发货
-                        </button>
-                        <button class="btn btn-secondary" onclick="batchUpdateStatus('orders','/api/admin/orders/batch-status','delivered')">
-                            <i class="fas fa-check"></i> 批量设为已送达
-                        </button>
-                        <button class="btn btn-outline" onclick="batchDelete('orders','/api/admin/orders/batch-delete')">
-                            <i class="fas fa-trash"></i> 批量删除
                         </button>
                     </div>
                 </div>
