@@ -464,16 +464,15 @@ function submitInbound(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
     const data = Object.fromEntries(formData);
-    
-    // 模拟提交数据
-    console.log('入库数据:', data);
-    
-    // 显示成功消息
-    showNotification('入库单创建成功！', 'success');
-    closeModal();
-    
-    // 刷新入库列表
-    loadInboundData();
+    fetch('/api/admin/inbound', { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) })
+      .then(r=>r.json())
+      .then(d=>{
+        if (!d.success) { showNotification(d.error||'创建失败', 'error'); return; }
+        showNotification('入库单创建成功！', 'success');
+        closeModal();
+        loadInboundData();
+      })
+      .catch(()=>showNotification('网络错误', 'error'));
 }
 
 // 提交出库表单

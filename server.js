@@ -252,6 +252,37 @@ app.get('/api/admin/inbound', requireAuth, requireAdmin, (req, res) => {
   });
 });
 
+// 新建入库
+app.post('/api/admin/inbound', requireAuth, requireAdmin, (req, res) => {
+  const { supplier, inboundNumber, productName, category, quantity, inboundTime, notes } = req.body || {};
+  if (!supplier || !productName || !category || !quantity) {
+    return res.status(400).json({ error: '参数不完整' });
+  }
+  const createdBy = req.session.user?.id || null;
+  // 1) 确认/创建商品
+  db.get('SELECT id FROM products WHERE name = ?', [productName], (e1, p) => {
+    if (e1) return res.status(500).json({ error: '服务器错误' });
+    const ensureProduct = (cb) => {
+      if (p && p.id) return cb(null, p.id);
+      const sku = 'SKU' + Date.now();
+      db.insert('INSERT INTO products (sku, name, category) VALUES (?, ?, ?)', [sku, productName, category], (e2, productId) => {
+        if (e2) return cb(e2);
+        cb(null, productId);
+      });
+    };
+    ensureProduct((e3, productId) => {
+      if (e3) return res.status(500).json({ error: '创建商品失败' });
+      // 2) 写入入库记录（编号若未提供，PG 触发器会自动生成；SQLite 下需要提供，但本项目线上为 PG）
+      const sql = `INSERT INTO inbound_records (inbound_number, supplier, product_id, quantity, status, inbound_time, notes, created_by)
+                   VALUES (?, ?, ?, ?, 'completed', ?, ?, ?)`;
+      db.insert(sql, [inboundNumber || null, supplier, productId, parseInt(quantity,10)||0, inboundTime || new Date().toISOString(), notes || '', createdBy], (e4) => {
+        if (e4) return res.status(500).json({ error: '创建入库失败' });
+        return res.json({ success: true });
+      });
+    });
+  });
+});
+
 // 批量操作：入库
 app.post('/api/admin/inbound/batch-status', requireAuth, requireAdmin, (req, res) => {
   const { ids = [], status } = req.body || {};
