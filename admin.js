@@ -844,12 +844,11 @@ function loadPrefs(prefix){
 (function attachPrefsEvents(){
   ['inbound','outbound','inventory','orders'].forEach(prefix=>{
     const sel = document.getElementById(`${prefix}-columns`); if (sel) sel.addEventListener('change', ()=>savePrefs(prefix));
-    // 监听拖拽结束：在enableColResize中 mouseup里保存
   });
 })();
-// 覆盖enableColResize以在鼠标松开时保存
-const _enableColResize = enableColResize;
-enableColResize = function(tableId){
+
+// 列宽拖拽启用（定义缺失会导致脚本报错，进而所有按钮无响应）
+function enableColResize(tableId){
   const table = document.getElementById(tableId); if (!table) return;
   table.querySelectorAll('th .col-resizer').forEach(handle => {
     let startX, startWidth, th;
@@ -862,7 +861,7 @@ enableColResize = function(tableId){
       document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
     });
   });
-};
+}
 
 // 在tab激活时加载偏好
 function onTabActivated(tabId){
