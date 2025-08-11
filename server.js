@@ -20,11 +20,9 @@ app.use(helmet({
   contentSecurityPolicy: {
     useDefaults: true,
     directives: {
-      // 允许内联脚本与内联事件处理器（仅为快速恢复，后续可改为外链脚本+nonce）
-      "script-src": ["'self'", "'unsafe-inline'"],
-      "script-src-elem": ["'self'", "'unsafe-inline'"],
+      "script-src": ["'self'"],
+      "script-src-elem": ["'self'"],
       "script-src-attr": ["'unsafe-inline'"],
-      // 样式/图片/连接放宽，保证页面与 API 正常
       "style-src": ["'self'", "'unsafe-inline'", "https:", "data:"],
       "img-src": ["'self'", "data:", "https:"],
       "connect-src": ["'self'", "https:", "http:"],
@@ -580,8 +578,6 @@ app.get('/', (req, res) => { res.set('Cache-Control','no-store'); res.sendFile(p
 app.get('/client', (req, res) => { res.set('Cache-Control','no-store'); res.sendFile(path.join(__dirname, 'client.html')); });
 app.get('/admin', (req, res) => { res.set('Cache-Control','no-store'); res.sendFile(path.join(__dirname, 'admin.html')); });
 app.get('/admin-login', (req, res) => { res.set('Cache-Control','no-store'); res.sendFile(path.join(__dirname, 'admin-login.html')); });
-app.get('/debug-login', (req, res) => { res.set('Cache-Control','no-store'); res.sendFile(path.join(__dirname, 'debug-login.html')); });
-app.get('/simple-test', (req, res) => { res.set('Cache-Control','no-store'); res.sendFile(path.join(__dirname, 'simple-test.html')); });
 
 const PORT = config.PORT; const HOST = '0.0.0.0';
 app.listen(PORT, HOST, () => { console.log(`服务器运行在 http://localhost:${PORT} (driver=${db.isPg ? 'pg' : 'sqlite'})`); }); 
