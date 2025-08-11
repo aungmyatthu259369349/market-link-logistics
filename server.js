@@ -456,17 +456,44 @@ app.get('/api/admin/inventory', requireAuth, requireAdmin, (req, res) => {
   if (search) { where.push('(p.name LIKE ? OR p.sku LIKE ? OR p.description LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
   if (category) { where.push('p.category = ?'); params.push(category); }
   const orderBy = sanitizeSort(sort, ['p.sku','p.name','p.category','i.current_stock','p.safety_stock','stock_status','p.created_at'], 'p.created_at DESC');
-  const baseSql = `SELECT p.sku, p.name, p.category, p.safety_stock, i.current_stock, i.available_stock, i.reserved_stock, i.last_updated,
-                  CASE WHEN i.current_stock > p.safety_stock THEN 'in-stock' WHEN i.current_stock > 0 THEN 'low-stock' ELSE 'out-of-stock' END as stock_status
-                  FROM products p LEFT JOIN inventory i ON p.id = i.product_id ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
-                  ORDER BY ${orderBy}`;
+
+  const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : '';
+
+  let baseSql;
+  if (db.isPg) {
+    baseSql = `
+      WITH mv AS (
+        SELECT product_id, SUM(qty) AS qty_sum
+        FROM inventory_movements
+        GROUP BY product_id
+      )
+      SELECT p.sku, p.name, p.category, p.safety_stock,
+             COALESCE(mv.qty_sum, COALESCE(i.current_stock, 0)) AS current_stock,
+             COALESCE(mv.qty_sum, COALESCE(i.available_stock, 0)) AS available_stock,
+             COALESCE(i.reserved_stock, 0) AS reserved_stock,
+             NOW() AS last_updated,
+             CASE WHEN COALESCE(mv.qty_sum, COALESCE(i.current_stock,0)) > p.safety_stock THEN 'in-stock'
+                  WHEN COALESCE(mv.qty_sum, COALESCE(i.current_stock,0)) > 0 THEN 'low-stock'
+                  ELSE 'out-of-stock' END as stock_status
+      FROM products p
+      LEFT JOIN inventory i ON p.id = i.product_id
+      LEFT JOIN mv ON mv.product_id = p.id
+      ${whereSql}
+      ORDER BY ${orderBy}`;
+  } else {
+    baseSql = `SELECT p.sku, p.name, p.category, p.safety_stock, i.current_stock, i.available_stock, i.reserved_stock, i.last_updated,
+                   CASE WHEN i.current_stock > p.safety_stock THEN 'in-stock' WHEN i.current_stock > 0 THEN 'low-stock' ELSE 'out-of-stock' END as stock_status
+                   FROM products p LEFT JOIN inventory i ON p.id = i.product_id ${whereSql}
+                   ORDER BY ${orderBy}`;
+  }
+
   const pagedSql = `${baseSql} LIMIT ? OFFSET ?`;
   const runSql = (exp === 'csv' && scope === 'page') ? pagedSql : baseSql;
   const runParams = (exp === 'csv' && scope === 'page') ? params.concat([pageSize, offset]) : params;
   db.all(runSql, runParams, (err, rows) => {
     if (err) return res.status(500).json({ error: '获取库存信息失败' });
     if (exp === 'csv') return sendCsv(res, 'inventory.csv', rows);
-    db.get(`SELECT COUNT(1) as cnt FROM products p LEFT JOIN inventory i ON p.id = i.product_id ${where.length ? 'WHERE ' + where.join(' AND ') : ''}`, params, (e2, r2) => {
+    db.get(`SELECT COUNT(1) as cnt FROM products p LEFT JOIN inventory i ON p.id = i.product_id ${whereSql}`, params, (e2, r2) => {
       const total = r2 ? r2.cnt || 0 : 0;
       res.json({ page, pageSize, total, rows });
     });
