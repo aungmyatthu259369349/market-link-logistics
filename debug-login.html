@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录调试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { margin: 5px; padding: 10px; }
+        input { margin: 5px; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>登录调试页面</h1>
+    
+    <div class="debug-section">
+        <h3>1. 测试登录</h3>
+        <input type="text" id="username" placeholder="用户名" value="admin">
+        <input type="password" id="password" placeholder="密码" value="admin123">
+        <button onclick="testLogin()">测试登录</button>
+        <div id="loginResult"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>2. 检查会话状态</h3>
+        <button onclick="checkSession()">检查会话</button>
+        <div id="sessionResult"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>3. 测试应急登录</h3>
+        <button onclick="testDevLogin()">测试应急登录</button>
+        <div id="devLoginResult"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>4. 重置管理员密码</h3>
+        <button onclick="resetAdmin()">重置管理员密码</button>
+        <div id="resetResult"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>5. 检查 Cookie</h3>
+        <button onclick="checkCookies()">检查 Cookie</button>
+        <div id="cookieResult"></div>
+    </div>
+
+    <script>
+        const BASE_URL = 'https://market-link-logistics.onrender.com';
+
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('loginResult');
+            
+            resultDiv.innerHTML = '<span class="info">正在登录...</span>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `<span class="success">登录成功！用户: ${JSON.stringify(data.user)}</span>`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">登录失败: ${data.error || '未知错误'}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">网络错误: ${error.message}</span>`;
+            }
+        }
+
+        async function checkSession() {
+            const resultDiv = document.getElementById('sessionResult');
+            resultDiv.innerHTML = '<span class="info">检查中...</span>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/whoami`, {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.user) {
+                    resultDiv.innerHTML = `<span class="success">已登录: ${JSON.stringify(data.user)}</span>`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">未登录: ${JSON.stringify(data)}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">检查失败: ${error.message}</span>`;
+            }
+        }
+
+        async function testDevLogin() {
+            const resultDiv = document.getElementById('devLoginResult');
+            resultDiv.innerHTML = '<span class="info">测试中...</span>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/dev-login?key=temp-allow`, {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `<span class="success">应急登录成功！用户: ${JSON.stringify(data.user)}</span>`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">应急登录失败: ${data.error || '未知错误'}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">测试失败: ${error.message}</span>`;
+            }
+        }
+
+        async function resetAdmin() {
+            const resultDiv = document.getElementById('resetResult');
+            resultDiv.innerHTML = '<span class="info">重置中...</span>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/admin-seed?key=temp-allow&pwd=admin123`, {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `<span class="success">管理员密码重置成功！</span>`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">重置失败: ${data.error || '未知错误'}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">重置失败: ${error.message}</span>`;
+            }
+        }
+
+        function checkCookies() {
+            const resultDiv = document.getElementById('cookieResult');
+            const cookies = document.cookie;
+            
+            if (cookies) {
+                resultDiv.innerHTML = `<span class="info">Cookie: ${cookies}</span>`;
+            } else {
+                resultDiv.innerHTML = `<span class="error">没有 Cookie</span>`;
+            }
+        }
+    </script>
+</body>
+</html>

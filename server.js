@@ -60,7 +60,7 @@ app.use(session({
   cookie: {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? 'none' : 'lax',
+    sameSite: 'lax',
     maxAge: (parseInt(process.env.SESSION_MAX_AGE_MINUTES || '30',10))*60*1000
   }
 }));
@@ -106,6 +106,8 @@ app.post('/api/auth/login', (req, res) => {
       req.session.lastSeen = Date.now();
       req.session.save((saveErr) => {
         if (saveErr) return res.status(500).json({ error: '会话保存失败' });
+        // 确保 Cookie 被正确设置
+        res.setHeader('Set-Cookie', `mlsid=${req.sessionID}; HttpOnly; Path=/; SameSite=Lax; ${isProd ? 'Secure;' : ''} Max-Age=${parseInt(process.env.SESSION_MAX_AGE_MINUTES || '30',10)*60}`);
         res.json({ success: true, user: req.session.user });
       });
     });

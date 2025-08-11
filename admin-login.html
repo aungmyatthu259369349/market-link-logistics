@@ -86,7 +86,6 @@
 
         if (res.ok && data && data.success && data.user && data.user.role === 'admin') {
           localStorage.setItem('adminLoggedIn', 'true');
-          localStorage.setItem('adminToken', data.token);
           localStorage.setItem('adminUser', JSON.stringify(data.user));
           window.location.href = 'admin.html';
         } else {
