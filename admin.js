@@ -578,13 +578,16 @@ function performSearch(query) {
 function buildPagination(elId, page, pageSize, total, onPage) {
   const el = document.getElementById(elId);
   if (!el) return;
-  const pages = Math.max(1, Math.ceil(total / pageSize));
-  const prev = Math.max(1, page - 1);
-  const next = Math.min(pages, page + 1);
+  const _page = parseInt(page, 10) || 1;
+  const _pageSize = parseInt(pageSize, 10) || 10;
+  const _total = parseInt(total, 10) || 0;
+  const pages = Math.max(1, Math.ceil(_total / _pageSize));
+  const prev = Math.max(1, _page - 1);
+  const next = Math.min(pages, _page + 1);
   el.innerHTML = `
-    <button class="btn btn-small" ${page===1?'disabled':''} onclick="${onPage}(${prev})">上一页</button>
-    <span style="padding:0 8px;">第 ${page} / ${pages} 页，共 ${total} 条</span>
-    <button class="btn btn-small" ${page===pages?'disabled':''} onclick="${onPage}(${next})">下一页</button>
+    <button class=\"btn btn-small\" ${_page===1?'disabled':''} onclick=\"${onPage}(${prev})\">上一页</button>
+    <span style=\"padding:0 8px;\">第 ${_page} / ${pages} 页，共 ${_total} 条</span>
+    <button class=\"btn btn-small\" ${_page===pages?'disabled':''} onclick=\"${onPage}(${next})\">下一页</button>
   `;
 }
 
@@ -659,7 +662,8 @@ function loadInventoryData(){
   const qs = new URLSearchParams({ page: inventoryPage, pageSize: inventoryPageSize, search, category, sort: inventorySort }).toString();
   fetch(`/api/admin/inventory?${qs}`, fetchOpts()).then(r=>r.json()).then(d=>{
       const tbody = document.getElementById('inventory-table-body');
-      tbody.innerHTML = (d.rows||[]).map(r => `
+      const rows = Array.isArray(d.rows) ? d.rows : [];
+      tbody.innerHTML = rows.map(r => `
         <tr>
           <td><input type="checkbox" class="row-select" value="${r.sku||''}"></td>
           <td>${r.sku||''}</td>
@@ -672,7 +676,7 @@ function loadInventoryData(){
             <button class="btn btn-small" onclick="viewInventory('${r.sku||''}')">查看</button>
           </td>
         </tr>`).join('');
-      buildPagination('inventory-pagination', d.page, d.pageSize, d.total, 'filterInventory');
+      buildPagination('inventory-pagination', d.page||1, d.pageSize||inventoryPageSize, d.total||rows.length, 'filterInventory');
     });
 }
 
