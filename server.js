@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const session = require('express-session');
+const PgSession = require('connect-pg-simple')(session);
 const cookieParser = require('cookie-parser');
 const nodemailer = require('nodemailer');
 const config = require('./config');
@@ -31,13 +32,27 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+// 在 Render/生产环境下使用 Postgres 存储会话
+const usePgSession = !!process.env.DATABASE_URL;
+app.set('trust proxy', 1);
 app.use(session({
   name: 'mlsid',
+  store: usePgSession ? new PgSession({
+    conString: process.env.DATABASE_URL,
+    ssl: process.env.PGSSL === 'false' ? false : { rejectUnauthorized: false },
+    tableName: 'session',
+    createTableIfMissing: true
+  }) : undefined,
   secret: config.SESSION_SECRET || 'logistics_session_secret',
   resave: false,
   saveUninitialized: false,
   rolling: true,
-  cookie: { httpOnly: true, secure: false, sameSite: 'lax', maxAge: (parseInt(process.env.SESSION_MAX_AGE_MINUTES || '30',10))*60*1000 }
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: (parseInt(process.env.SESSION_MAX_AGE_MINUTES || '30',10))*60*1000
+  }
 }));
 
 // 登录用户活动时间
