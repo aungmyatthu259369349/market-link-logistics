@@ -21,10 +21,19 @@ const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
 app.use(limiter);
 app.use(compression());
 
-// CORS（生产建议填写你的域名）
-const whitelist = (process.env.ORIGIN_WHITELIST || '').split(',').map(s => s.trim()).filter(Boolean);
+// CORS（默认允许同源；支持通过 ORIGIN_WHITELIST 和 PUBLIC_URL 追加）
+const whitelistRaw = (process.env.ORIGIN_WHITELIST || '').split(',').map(s => s.trim()).filter(Boolean);
+const publicUrl = (process.env.PUBLIC_URL || '').trim();
+const whitelist = new Set(whitelistRaw.concat(publicUrl ? [publicUrl] : []));
 app.use(cors({
-  origin: (origin, cb) => { if (!origin || whitelist.length === 0 || whitelist.includes(origin)) return cb(null, true); return cb(new Error('Not allowed by CORS')); },
+  origin: (origin, cb) => {
+    // 无 Origin（如同源导航请求）直接允许
+    if (!origin) return cb(null, true);
+    // 配置了白名单则校验；否则默认放行（由会话与权限控制）
+    if (whitelist.size === 0) return cb(null, true);
+    if (whitelist.has(origin)) return cb(null, true);
+    return cb(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 
