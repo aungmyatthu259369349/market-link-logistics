@@ -93,14 +93,35 @@ function requireAdmin(req, res, next){ if (req.session && req.session.user && re
 
 // 登录（Cookie Session）
 app.post('/api/auth/login', (req, res) => {
-  const { username, password } = req.body;
+  const { username, password } = req.body || {};
   db.get('SELECT * FROM users WHERE username = ? OR email = ?', [username, username], async (err, user) => {
     if (err) return res.status(500).json({ error: '服务器错误' });
     if (!user) return res.status(401).json({ error: '用户名或密码错误' });
     const valid = await bcrypt.compare(password, user.password).catch(()=>false);
     if (!valid) return res.status(401).json({ error: '用户名或密码错误' });
-    req.session.user = { id: user.id, username: user.username, email: user.email, role: user.role };
-    res.json({ success: true, user: req.session.user });
+    req.session.regenerate((regenErr) => {
+      if (regenErr) return res.status(500).json({ error: '会话创建失败' });
+      req.session.user = { id: user.id, username: user.username, email: user.email, role: user.role };
+      req.session.lastSeen = Date.now();
+      req.session.save((saveErr) => {
+        if (saveErr) return res.status(500).json({ error: '会话保存失败' });
+        res.json({ success: true, user: req.session.user });
+      });
+    });
+  });
+});
+
+// 临时应急登录（仅当设置 DEV_LOGIN_KEY 时启用）
+app.get('/api/auth/dev-login', (req, res) => {
+  const key = process.env.DEV_LOGIN_KEY;
+  if (!key) return res.status(404).json({ error: '未启用' });
+  if ((req.query.key || '') !== key) return res.status(403).json({ error: '无权访问' });
+  // 以管理员身份登录
+  req.session.regenerate((err)=>{
+    if (err) return res.status(500).json({ error: '会话创建失败' });
+    req.session.user = { id: 0, username: 'admin', email: 'admin@marketlinklogistics.com', role: 'admin' };
+    req.session.lastSeen = Date.now();
+    req.session.save(()=>res.json({ success: true, user: req.session.user }));
   });
 });
 app.post('/api/auth/logout', (req, res) => { req.session.destroy(()=>res.json({ success: true })); });
