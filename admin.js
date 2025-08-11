@@ -471,6 +471,8 @@ function submitInbound(event) {
         showNotification('入库单创建成功！', 'success');
         closeModal();
         loadInboundData();
+        // 同步刷新库存列表，方便你马上看到库存变化
+        loadInventoryData();
       })
       .catch(()=>showNotification('网络错误', 'error'));
 }
