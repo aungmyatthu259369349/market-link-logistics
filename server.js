@@ -27,7 +27,8 @@ app.use(helmet({
       // 样式/图片/连接放宽，保证页面与 API 正常
       "style-src": ["'self'", "'unsafe-inline'", "https:", "data:"],
       "img-src": ["'self'", "data:", "https:"],
-      "connect-src": ["'self'", "https:", "http:"]
+      "connect-src": ["'self'", "https:", "http:"],
+      "default-src": ["'self'"]
     }
   },
   crossOriginEmbedderPolicy: false
@@ -96,8 +97,16 @@ app.post('/api/auth/renew', (req, res) => {
   res.json({ success: true });
 });
 
-// 静态
-app.use(express.static('./', { maxAge: '7d', etag: true }));
+// 静态（对 HTML 不缓存，其它静态资源 7 天缓存）
+app.use(express.static('./', {
+  maxAge: '7d',
+  etag: true,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-store');
+    }
+  }
+}));
 
 // 健康与版本
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
@@ -566,11 +575,13 @@ app.get('/api/self-check', async (req, res) => {
   res.json(out);
 });
 
-// 静态页面
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/client', (req, res) => res.sendFile(path.join(__dirname, 'client.html')));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
-app.get('/admin-login', (req, res) => res.sendFile(path.join(__dirname, 'admin-login.html')));
+// 静态页面（明确对 HTML 不缓存）
+app.get('/', (req, res) => { res.set('Cache-Control','no-store'); res.sendFile(path.join(__dirname, 'index.html')); });
+app.get('/client', (req, res) => { res.set('Cache-Control','no-store'); res.sendFile(path.join(__dirname, 'client.html')); });
+app.get('/admin', (req, res) => { res.set('Cache-Control','no-store'); res.sendFile(path.join(__dirname, 'admin.html')); });
+app.get('/admin-login', (req, res) => { res.set('Cache-Control','no-store'); res.sendFile(path.join(__dirname, 'admin-login.html')); });
+app.get('/debug-login', (req, res) => { res.set('Cache-Control','no-store'); res.sendFile(path.join(__dirname, 'debug-login.html')); });
+app.get('/simple-test', (req, res) => { res.set('Cache-Control','no-store'); res.sendFile(path.join(__dirname, 'simple-test.html')); });
 
 const PORT = config.PORT; const HOST = '0.0.0.0';
 app.listen(PORT, HOST, () => { console.log(`服务器运行在 http://localhost:${PORT} (driver=${db.isPg ? 'pg' : 'sqlite'})`); }); 
