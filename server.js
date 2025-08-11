@@ -125,6 +125,33 @@ app.get('/api/auth/dev-login', (req, res) => {
     req.session.save(()=>res.json({ success: true, user: req.session.user }));
   });
 });
+
+// 管理员种子/重置（仅在 DEV_LOGIN_KEY 存在时启用）
+app.get('/api/auth/admin-seed', async (req, res) => {
+  const key = process.env.DEV_LOGIN_KEY;
+  if (!key) return res.status(404).json({ error: '未启用' });
+  if ((req.query.key || '') !== key) return res.status(403).json({ error: '无权访问' });
+  try {
+    const pwd = String(req.query.pwd || 'admin123');
+    const hash = await bcrypt.hash(pwd, 10);
+    if (db.isPg) {
+      db.run(`INSERT INTO users (username,email,password,role) VALUES ('admin','admin@marketlinklogistics.com', ?, 'admin') ON CONFLICT (username) DO UPDATE SET email=EXCLUDED.email, password=EXCLUDED.password, role='admin'`, [hash], (e)=>{
+        if (e) return res.status(500).json({ error: '写入失败' });
+        res.json({ success: true });
+      });
+    } else {
+      db.run(`INSERT OR IGNORE INTO users (username,email,password,role) VALUES ('admin','admin@marketlinklogistics.com', ?, 'admin')`, [hash], (e)=>{
+        if (e) return res.status(500).json({ error: '写入失败' });
+        db.run(`UPDATE users SET email='admin@marketlinklogistics.com', password=?, role='admin' WHERE username='admin'`, [hash], (e2)=>{
+          if (e2) return res.status(500).json({ error: '写入失败' });
+          res.json({ success: true });
+        });
+      });
+    }
+  } catch {
+    res.status(500).json({ error: '异常' });
+  }
+});
 app.post('/api/auth/logout', (req, res) => { req.session.destroy(()=>res.json({ success: true })); });
 
 // 登录状态诊断
