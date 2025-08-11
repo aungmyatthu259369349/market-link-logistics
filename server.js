@@ -15,8 +15,23 @@ const db = require('./db-adapter');
 
 const app = express();
 
-// 安全中间件
-app.use(helmet());
+// 安全中间件（放宽 CSP 以便当前前端内联脚本与 onclick 正常运行）
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      // 允许内联脚本与内联事件处理器（仅为快速恢复，后续可改为外链脚本+nonce）
+      "script-src": ["'self'", "'unsafe-inline'"],
+      "script-src-elem": ["'self'", "'unsafe-inline'"],
+      "script-src-attr": ["'unsafe-inline'"],
+      // 样式/图片/连接放宽，保证页面与 API 正常
+      "style-src": ["'self'", "'unsafe-inline'", "https:", "data:"],
+      "img-src": ["'self'", "data:", "https:"],
+      "connect-src": ["'self'", "https:", "http:"]
+    }
+  },
+  crossOriginEmbedderPolicy: false
+}));
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
 app.use(limiter);
 app.use(compression());
