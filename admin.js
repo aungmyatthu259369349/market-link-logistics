@@ -49,6 +49,18 @@ function setupEventListeners() {
             closeModal();
         }
     });
+
+    // 兜底事件代理：当内联 onclick 因浏览器策略被忽略时，仍可打开模态框
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const oc = (btn.getAttribute('onclick')||'');
+        if (oc.includes("showModal('inbound-modal')")) { e.preventDefault(); showModal('inbound-modal'); }
+        if (oc.includes("showModal('outbound-modal')")) { e.preventDefault(); showModal('outbound-modal'); }
+        if (oc.includes("showModal('order-modal')")) { e.preventDefault(); showModal('order-modal'); }
+        if (oc.includes("showModal('tracking-modal')")) { e.preventDefault(); showModal('tracking-modal'); }
+        if (oc.includes("showModal('inventory-modal')")) { e.preventDefault(); showModal('inventory-modal'); }
+    });
 }
 
 // 初始化侧边栏
