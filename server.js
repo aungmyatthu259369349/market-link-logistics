@@ -96,6 +96,12 @@ app.post('/api/auth/login', (req, res) => {
 });
 app.post('/api/auth/logout', (req, res) => { req.session.destroy(()=>res.json({ success: true })); });
 
+// 登录状态诊断
+app.get('/api/auth/whoami', (req, res) => {
+  res.setHeader('Cache-Control','no-store');
+  res.json({ user: req.session?.user || null });
+});
+
 // 注册
 app.post('/api/auth/register', async (req, res) => {
   const { username, email, password, company_name, contact_name, phone } = req.body;
