@@ -77,6 +77,45 @@ function setupEventListeners() {
         if (oc.includes("showModal('tracking-modal')")) { e.preventDefault(); showModal('tracking-modal'); }
         if (oc.includes("showModal('inventory-modal')")) { e.preventDefault(); showModal('inventory-modal'); }
     });
+
+    // 模态框打开时，根据类型处理特定输入框
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('modal');
+        if (!modal) return;
+
+        modal.addEventListener('open', function(event) {
+            const modalType = event.detail.modalType;
+            if (modalType === 'outbound-modal') {
+                const customerInput = document.querySelector('#outbound-form input[name=customer]');
+                const outboundNoSelect = document.getElementById('outboundNumberSelect');
+                const productInput = document.querySelector('#outbound-form input[name=productName]');
+                const productList = document.getElementById('productOptionsOut');
+
+                let loadTimer;
+                async function loadInboundByCustomer(){
+                  const party = (customerInput?.value || '').trim();
+                  if (!outboundNoSelect) return;
+                  outboundNoSelect.innerHTML = '<option value="" disabled selected>加载中...</option>';
+                  if (!party){ outboundNoSelect.innerHTML = '<option value="" disabled selected>请输入客户</option>'; return; }
+                  const res = await apiFetch(`/api/admin/inbound/list?party=${encodeURIComponent(party)}&t=${Date.now()}`).then(r=>r.json());
+                  const rows = res.rows||[];
+                  if (!rows.length){ outboundNoSelect.innerHTML = '<option value="" disabled selected>暂无数据</option>'; return; }
+                  outboundNoSelect.innerHTML = '<option value="" disabled selected>请选择历史入库单号</option>' + rows.map(r=>`<option value="${r.inbound_number}" data-pname="${r.product_name}">${r.inbound_number}（${r.product_name}）</option>`).join('');
+                  outboundNoSelect.selectedIndex = 0;
+                }
+
+                outboundNoSelect?.addEventListener('change', ()=>{
+                  const opt = outboundNoSelect.selectedOptions && outboundNoSelect.selectedOptions[0];
+                  if (opt && opt.dataset.pname){ productInput.value = opt.dataset.pname; }
+                });
+
+                customerInput?.addEventListener('input', ()=>{ clearTimeout(loadTimer); loadTimer = setTimeout(loadInboundByCustomer, 200); });
+
+                // 初始化一次
+                loadInboundByCustomer();
+            }
+        });
+    });
 }
 
 // 初始化侧边栏

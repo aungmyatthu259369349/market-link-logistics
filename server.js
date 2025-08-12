@@ -354,6 +354,7 @@ app.get('/api/admin/inbound/list', requireAuth, requireAdmin, (req, res) => {
                ORDER BY ir.created_at DESC LIMIT 200`;
   db.all(sql, params, (err, rows)=>{
     if (err) return res.status(500).json({ error: '获取入库记录失败' });
+    res.set('Cache-Control','no-store');
     res.json({ rows });
   });
 });
