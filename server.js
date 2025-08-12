@@ -596,6 +596,74 @@ app.get('/api/admin/inventory/:sku', requireAuth, requireAdmin, (req, res) => {
   });
 });
 
+// 产品列表（供选择/自动完成使用）
+app.get('/api/admin/products', requireAuth, requireAdmin, (req, res) => {
+  const { search = '', inStockOnly = '' } = req.query;
+  const params = [];
+  const whereParts = [];
+  if (search) { whereParts.push('(p.name LIKE ? OR p.sku LIKE ?)'); params.push(`%${search}%`, `%${search}%`); }
+  const whereSql = whereParts.length ? 'WHERE ' + whereParts.join(' AND ') : '';
+
+  let sql;
+  if (db.isPg) {
+    sql = `
+      WITH mv AS (
+        SELECT product_id, SUM(qty) AS qty_sum
+        FROM inventory_movements GROUP BY product_id
+      )
+      SELECT p.id, p.sku, p.name, p.category,
+             COALESCE(mv.qty_sum, COALESCE(i.current_stock,0)) AS current_stock
+      FROM products p
+      LEFT JOIN inventory i ON i.product_id = p.id
+      LEFT JOIN mv ON mv.product_id = p.id
+      ${whereSql}
+      ${inStockOnly ? 'HAVING COALESCE(mv.qty_sum, COALESCE(i.current_stock,0)) > 0' : ''}
+      ORDER BY p.name ASC
+      LIMIT 100`;
+  } else {
+    sql = `SELECT p.id, p.sku, p.name, p.category, COALESCE(i.current_stock,0) AS current_stock
+           FROM products p LEFT JOIN inventory i ON i.product_id = p.id
+           ${whereSql}
+           ${inStockOnly ? 'AND COALESCE(i.current_stock,0) > 0' : ''}
+           ORDER BY p.name ASC LIMIT 100`;
+  }
+  db.all(sql, params, (err, rows)=>{
+    if (err) return res.status(500).json({ error: '获取商品失败' });
+    res.json({ rows });
+  });
+});
+
+// 新建出库
+app.post('/api/admin/outbound', requireAuth, requireAdmin, (req, res) => {
+  const { customer, outboundNumber, productName, quantity, destination, outboundTime, notes } = req.body || {};
+  if (!customer || !productName || !quantity) {
+    return res.status(400).json({ error: '参数不完整' });
+  }
+  const createdBy = req.session.user?.id || null;
+  let outboundAt = outboundTime || new Date().toISOString();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(outboundAt))) { outboundAt = `${outboundAt}T00:00:00Z`; }
+
+  // 必须存在商品
+  db.get('SELECT id FROM products WHERE name = ?', [productName], (e1, p) => {
+    if (e1) return res.status(500).json({ error: '服务器错误' });
+    if (!p || !p.id) return res.status(400).json({ error: '商品不存在，请先入库创建' });
+
+    const qty = parseInt(quantity,10)||0;
+    const sql = `INSERT INTO outbound_records (outbound_number, order_id, customer, product_id, quantity, destination, status, outbound_time, notes, created_by)
+                 VALUES (?, NULL, ?, ?, ?, ?, 'completed', ?, ?, ?)`;
+    db.insert(sql, [outboundNumber || null, customer, p.id, qty, destination || '', outboundAt, notes || '', createdBy], (e2)=>{
+      if (e2) return res.status(500).json({ error: '创建出库失败' });
+      if (!db.isPg) {
+        db.run('UPDATE inventory SET current_stock = current_stock - ?, available_stock = available_stock - ?, last_updated = CURRENT_TIMESTAMP WHERE product_id = ?', [qty, qty, p.id], ()=>{
+          return res.json({ success: true });
+        });
+      } else {
+        return res.json({ success: true });
+      }
+    });
+  });
+});
+
 // 自检接口：DB与邮件配置
 app.get('/api/self-check', async (req, res) => {
   const out = { ok: true, driver: db.isPg ? 'pg' : 'sqlite', mailConfigured: !!(process.env.MAIL_FROM && process.env.MAIL_API_KEY) };

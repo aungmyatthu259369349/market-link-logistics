@@ -287,7 +287,8 @@ function createInboundForm() {
                 </div>
                 <div class="form-group">
                     <label>商品名称</label>
-                    <input type="text" name="productName" required>
+                    <input type="text" name="productName" list="productOptions" placeholder="输入名称可联想" required>
+                    <datalist id="productOptions"></datalist>
                 </div>
                 <div class="form-group">
                     <label>商品数量</label>
@@ -334,7 +335,8 @@ function createOutboundForm() {
                 </div>
                 <div class="form-group">
                     <label>商品名称</label>
-                    <input type="text" name="productName" required>
+                    <input type="text" name="productName" list="productOptionsOut" placeholder="输入名称可联想" required>
+                    <datalist id="productOptionsOut"></datalist>
                 </div>
                 <div class="form-group">
                     <label>商品数量</label>
@@ -493,21 +495,21 @@ function submitInbound(event) {
       .catch(()=>showNotification('网络错误', 'error'));
 }
 
-// 提交出库表单
+// 出库提交
 function submitOutbound(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
     const data = Object.fromEntries(formData);
-    
-    // 模拟提交数据
-    console.log('出库数据:', data);
-    
-    // 显示成功消息
-    showNotification('出库单创建成功！', 'success');
-    closeModal();
-    
-    // 刷新出库列表
-    loadOutboundData();
+    apiFetch('/api/admin/outbound', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) })
+      .then(r=>r.json())
+      .then(d=>{
+        if (!d.success) { showNotification(d.error||'创建失败', 'error'); return; }
+        showNotification('出库单创建成功！', 'success');
+        closeModal();
+        loadOutboundData();
+        loadInventoryData();
+      })
+      .catch(()=>showNotification('网络错误', 'error'));
 }
 
 // 提交订单表单
