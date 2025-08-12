@@ -728,14 +728,41 @@ app.post('/api/admin/outbound', requireAuth, requireAdmin, (req, res) => {
       const current = stockRow ? parseInt(stockRow.current_stock||0,10) : 0;
       if (current < qty) return res.status(400).json({ error: `库存不足（当前 ${current}），无法出库 ${qty}` });
 
-      const sql = `INSERT INTO outbound_records (outbound_number, order_id, customer, product_id, quantity, destination, status, outbound_time, notes, created_by)
-                   VALUES (?, NULL, ?, ?, ?, ?, 'completed', ?, ?, ?)`;
-      db.insert(sql, [outboundNumber || null, customer, p.id, qty, destination || '', outboundAt, notes || '', createdBy], (e2)=>{
-        if (e2) return res.status(500).json({ error: '创建出库失败' });
+      const doInsert = (noToUse, cb) => {
+        const sql = `INSERT INTO outbound_records (outbound_number, order_id, customer, product_id, quantity, destination, status, outbound_time, notes, created_by)
+                     VALUES (?, NULL, ?, ?, ?, ?, 'completed', ?, ?, ?)`;
+        db.insert(sql, [noToUse || null, customer, p.id, qty, destination || '', outboundAt, notes || '', createdBy], cb);
+      };
+
+      doInsert(outboundNumber || null, (e2)=>{
+        if (e2) {
+          const msg = String(e2 && e2.message || e2);
+          const isUnique = /unique/i.test(msg) || /23505/.test(msg);
+          if (isUnique) {
+            // 冲突：自动生成一个新单号重试
+            const autoNo = 'OUT' + Date.now();
+            return doInsert(autoNo, (e3)=>{
+              if (e3) return res.status(400).json({ error: '出库单号已存在，请更换或留空自动生成' });
+              // 成功则继续更新库存
+              const finish = () => {
+                db.get('SELECT current_stock FROM inventory WHERE product_id = ?', [p.id], (e4, r4)=>{
+                  const left = r4 ? parseInt(r4.current_stock||0,10) : null;
+                  return res.json({ success: true, remaining: left, outbound_number: autoNo });
+                });
+              };
+              if (!db.isPg) {
+                db.run('UPDATE inventory SET current_stock = current_stock - ?, available_stock = available_stock - ?, last_updated = CURRENT_TIMESTAMP WHERE product_id = ?', [qty, qty, p.id], finish);
+              } else {
+                db.run('UPDATE inventory SET current_stock = COALESCE(current_stock,0) - ?, available_stock = COALESCE(available_stock,0) - ?, last_updated = NOW() WHERE product_id = ?', [qty, qty, p.id], finish);
+              }
+            });
+          }
+          return res.status(500).json({ error: '创建出库失败' });
+        }
         const finish = () => {
           db.get('SELECT current_stock FROM inventory WHERE product_id = ?', [p.id], (e3, r3)=>{
             const left = r3 ? parseInt(r3.current_stock||0,10) : null;
-            return res.json({ success: true, remaining: left });
+            return res.json({ success: true, remaining: left, outbound_number: outboundNumber || null });
           });
         };
         if (!db.isPg) {
