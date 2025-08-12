@@ -356,6 +356,7 @@
                         <div>
                             <label style="font-size:12px;color:var(--text-secondary);margin-right:6px;">列显隐</label>
                             <select id="outbound-columns" multiple size="1" onchange="toggleColumns('outbound')">
+                                <option value="col-inbound_ref" selected>入库单号</option>
                                 <option value="col-outbound_number" selected>出库单号</option>
                                 <option value="col-customer" selected>客户</option>
                                 <option value="col-quantity" selected>数量</option>
@@ -368,6 +369,7 @@
                         <thead>
                             <tr>
                                 <th><input type="checkbox" id="outbound-select-all" onclick="toggleSelectAll('outbound')"><span class="col-resizer"></span></th>
+                                <th class="col-inbound_ref">入库单号<span class="col-resizer"></span></th>
                                 <th class="col-outbound_number" onclick="sortOutbound('outbound_number')">出库单号<span class="col-resizer"></span></th>
                                 <th class="col-customer" onclick="sortOutbound('customer')">客户<span class="col-resizer"></span></th>
                                 <th class="col-quantity" onclick="sortOutbound('quantity')">商品数量<span class="col-resizer"></span></th>

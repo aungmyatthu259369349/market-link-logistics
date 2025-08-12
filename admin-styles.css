@@ -557,9 +557,23 @@ body {
 
 .data-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
 }
-
+.data-table thead th,
+.data-table tbody td{
+  padding: 14px 16px;
+  vertical-align: middle;
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.data-table thead th{
+  font-weight: 700;
+  letter-spacing: .5px;
+}
+.data-table tbody td{
+  font-weight: 500;
+}
 .data-table thead {
     background: rgba(0, 212, 255, 0.1);
 }
@@ -587,11 +601,13 @@ body {
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  line-height:1;
-  padding:6px 10px;
-  border-radius:20px;
-  font-weight:600;
-  letter-spacing:0.5px;
+  min-width: 96px;
+  height: 28px;
+  line-height: 28px;
+  padding:0 10px;
+  border-radius:14px;
+  font-weight:700;
+  letter-spacing:.5px;
 }
 .status-badge.in-stock{ background: #0f7; color:#063; }
 .status-badge.low-stock{ background: #fb3; color:#732; }
