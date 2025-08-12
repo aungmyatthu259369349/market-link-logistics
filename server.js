@@ -752,7 +752,7 @@ app.get('/api/admin/products', requireAuth, requireAdmin, (req, res) => {
 
 // 新建出库
 app.post('/api/admin/outbound', requireAuth, requireAdmin, (req, res) => {
-  const { customer, outboundNumber, productName, quantity, destination, outboundTime, notes } = req.body || {};
+  const { customer, outboundNumber, productName, quantity, destination, outboundTime, notes, pieces, itemWeight, totalWeight, itemVolume, totalVolume } = req.body || {};
   if (!customer || !productName || !quantity) {
     return res.status(400).json({ error: '参数不完整' });
   }
@@ -774,7 +774,16 @@ app.post('/api/admin/outbound', requireAuth, requireAdmin, (req, res) => {
 
       const inboundRef = outboundNumber || null; // 前端选择的入库单号作为关联引用
       const finalOutboundNo = 'OUT' + Date.now(); // 始终生成唯一出库单号
-      const finalNotes = inboundRef ? (((notes||'') + ` [ref:${inboundRef}]`).trim()) : (notes||'');
+      // 组装备注追加扩展字段
+      const extra = [];
+      if (pieces) extra.push(`件数:${pieces}`);
+      if (itemWeight) extra.push(`单件重量:${itemWeight}kg`);
+      if (totalWeight) extra.push(`总重量:${totalWeight}kg`);
+      if (itemVolume) extra.push(`单件体积:${itemVolume}m3`);
+      if (totalVolume) extra.push(`总体积:${totalVolume}m3`);
+      let finalNotes = notes || '';
+      if (extra.length) finalNotes = (finalNotes ? finalNotes + '; ' : '') + extra.join(', ');
+      if (inboundRef) finalNotes = (finalNotes ? finalNotes + ' ' : '') + `[ref:${inboundRef}]`;
 
       const doInsert = (noToUse, cb) => {
         const sql = `INSERT INTO outbound_records (outbound_number, order_id, customer, product_id, quantity, destination, status, outbound_time, notes, created_by)
@@ -789,8 +798,14 @@ app.post('/api/admin/outbound', requireAuth, requireAdmin, (req, res) => {
         const finish = () => {
           db.get('SELECT current_stock FROM inventory WHERE product_id = ?', [p.id], (e3, r3)=>{
             const left = r3 ? parseInt(r3.current_stock||0,10) : null;
-            // 写入/更新跟踪
+            // 写入/更新跟踪，备注包含扩展字段
+            const trackNote = (extra.length? extra.join(', '): '') + (customer? ` 客户:${customer}`:'');
             ensureTrackingForOutbound(finalOutboundNo, customer, destination).then(()=>{
+              if (trackNote) {
+                db.get('SELECT id FROM tracking WHERE tracking_number = ?', [finalOutboundNo], (et, trow)=>{
+                  if (trow) db.run('INSERT INTO tracking_updates (tracking_id, status, location, update_time, notes) VALUES (?, ?, ?, ?, ?)', [trow.id, '已出库', destination||'仓库', new Date().toISOString(), trackNote]);
+                });
+              }
               return res.json({ success: true, remaining: left, outbound_number: finalOutboundNo, inbound_ref: inboundRef });
             });
           });

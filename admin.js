@@ -436,8 +436,28 @@ function createOutboundForm() {
                     <datalist id="productOptionsOut"></datalist>
                 </div>
                 <div class="form-group">
+                    <label>件数</label>
+                    <input type="number" name="pieces" min="0" step="1" placeholder="例如 10">
+                </div>
+                <div class="form-group">
                     <label>商品数量</label>
                     <input type="number" name="quantity" required>
+                </div>
+                <div class="form-group">
+                    <label>单件重量(kg)</label>
+                    <input type="number" name="itemWeight" min="0" step="0.001" placeholder="例如 2.5">
+                </div>
+                <div class="form-group">
+                    <label>总重量(kg)</label>
+                    <input type="number" name="totalWeight" min="0" step="0.001" placeholder="自动/可手动填写">
+                </div>
+                <div class="form-group">
+                    <label>单件体积(m³)</label>
+                    <input type="number" name="itemVolume" min="0" step="0.0001" placeholder="例如 0.015">
+                </div>
+                <div class="form-group">
+                    <label>总体积(m³)</label>
+                    <input type="number" name="totalVolume" min="0" step="0.0001" placeholder="自动/可手动填写">
                 </div>
                 <div class="form-group">
                     <label>目的地</label>
