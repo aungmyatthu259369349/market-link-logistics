@@ -268,6 +268,49 @@ function initializeCharts() {
     console.log('初始化图表');
 }
 
+// 简单防抖
+function debounce(fn, delay){ let timer; return (...args)=>{ clearTimeout(timer); timer = setTimeout(()=>fn(...args), delay); }; }
+
+// 初始化出库弹窗联动
+async function initOutboundModal(){
+  const customerInput = document.querySelector('#outbound-form input[name=customer]');
+  const outboundNoSelect = document.getElementById('outboundNumberSelect');
+  const productInput = document.querySelector('#outbound-form input[name=productName]');
+  const productList = document.getElementById('productOptionsOut');
+
+  async function loadInboundByCustomer(){
+    if (!outboundNoSelect) return;
+    const party = (customerInput?.value || '').trim();
+    outboundNoSelect.innerHTML = '<option value="" disabled selected>加载中...</option>';
+    if (!party){ outboundNoSelect.innerHTML = '<option value="" disabled selected>请输入客户</option>'; return; }
+    const res = await apiFetch(`/api/admin/inbound/list?party=${encodeURIComponent(party)}&t=${Date.now()}`).then(r=>r.json()).catch(()=>({rows:[]}));
+    const rows = res.rows||[];
+    if (!rows.length){ outboundNoSelect.innerHTML = '<option value="" disabled selected>暂无数据</option>'; return; }
+    outboundNoSelect.innerHTML = '<option value="" disabled selected>请选择历史入库单号</option>' + rows.map(r=>`<option value="${r.inbound_number}" data-pname="${r.product_name}">${r.inbound_number}（${r.product_name}）</option>`).join('');
+    outboundNoSelect.selectedIndex = 0;
+  }
+
+  function onOutboundNoChange(){
+    const opt = outboundNoSelect?.selectedOptions?.[0];
+    if (opt && opt.dataset.pname){ productInput.value = opt.dataset.pname; }
+  }
+
+  async function loadProductSuggest(){
+    const q = productInput.value.trim();
+    const params = new URLSearchParams(); if (q) params.set('search', q); if (customerInput?.value?.trim()) params.set('customer', customerInput.value.trim());
+    const res = await apiFetch(`/api/admin/products?${params.toString()}`).then(r=>r.json()).catch(()=>({rows:[]}));
+    productList.innerHTML = (res.rows||[]).map(p=>`<option value="${p.name}">${p.name}（${p.sku}，库存${p.current_stock||0}）</option>`).join('');
+  }
+
+  customerInput?.addEventListener('input', debounce(loadInboundByCustomer, 200));
+  outboundNoSelect?.addEventListener('change', onOutboundNoChange);
+  productInput?.addEventListener('input', debounce(loadProductSuggest, 200));
+
+  // 初次加载
+  await loadInboundByCustomer();
+  await loadProductSuggest();
+}
+
 // 显示模态框
 function showModal(modalType) {
     const modal = document.getElementById('modal');
@@ -285,6 +328,8 @@ function showModal(modalType) {
         case 'outbound-modal':
             modalTitle.textContent = '新建出库';
             modalBody.innerHTML = createOutboundForm();
+            // 渲染后挂载事件与数据
+            setTimeout(()=>{ initOutboundModal(); }, 0);
             break;
         case 'order-modal':
             modalTitle.textContent = '新建订单';
