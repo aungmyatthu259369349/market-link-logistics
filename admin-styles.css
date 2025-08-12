@@ -583,50 +583,19 @@ body {
 }
 
 /* 状态徽章 */
-.status-badge {
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
+.status-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1;
+  padding:6px 10px;
+  border-radius:20px;
+  font-weight:600;
+  letter-spacing:0.5px;
 }
-
-.status-badge.completed,
-.status-badge.in-stock {
-    background: rgba(16, 185, 129, 0.2);
-    color: var(--success-color);
-    border: 1px solid var(--success-color);
-}
-
-.status-badge.processing {
-    background: rgba(245, 158, 11, 0.2);
-    color: var(--warning-color);
-    border: 1px solid var(--warning-color);
-}
-
-.status-badge.pending {
-    background: rgba(0, 212, 255, 0.2);
-    color: var(--primary-color);
-    border: 1px solid var(--primary-color);
-}
-
-.status-badge.shipped {
-    background: rgba(99, 102, 241, 0.2);
-    color: #6366f1;
-    border: 1px solid #6366f1;
-}
-
-.status-badge.low-stock {
-    background: rgba(245, 158, 11, 0.2);
-    color: var(--warning-color);
-    border: 1px solid var(--warning-color);
-}
-
-.status-badge.out-of-stock {
-    background: rgba(239, 68, 68, 0.2);
-    color: var(--danger-color);
-    border: 1px solid var(--danger-color);
-}
+.status-badge.in-stock{ background: #0f7; color:#063; }
+.status-badge.low-stock{ background: #fb3; color:#732; }
+.status-badge.out-of-stock{ background: #f55; color:#fff; }
 
 /* 按钮样式 */
 .btn {

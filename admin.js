@@ -581,18 +581,21 @@ function submitInbound(event) {
       .catch(()=>showNotification('网络错误', 'error'));
 }
 
-// 出库提交
+// 出库提交（显示余量）
 function submitOutbound(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
     const data = Object.fromEntries(formData);
     apiFetch('/api/admin/outbound', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) })
       .then(r=>r.json())
-      .then(d=>{
+      .then(async d=>{
         if (!d.success) { showNotification(d.error||'创建失败', 'error'); return; }
-    showNotification('出库单创建成功！', 'success');
-    closeModal();
-    loadOutboundData();
+        // 获取余量
+        const skuInfo = await (async ()=>{ try{ const r = await apiFetch(`/api/admin/inventory/${encodeURIComponent(data.productName)}`); return await r.json(); }catch{return null;} })();
+        const left = skuInfo ? (skuInfo.current_stock ?? skuInfo.available_stock ?? 0) : '—';
+        showNotification(`出库单创建成功！当前剩余：${left}`, 'success');
+        closeModal();
+        loadOutboundData();
         loadInventoryData();
       })
       .catch(()=>showNotification('网络错误', 'error'));
@@ -956,4 +959,32 @@ function loadPrefs(prefix){
     const ths = document.querySelectorAll(`#${prefix}-table thead th`);
     if (ths && widths) { Array.from(ths).forEach((th,i)=>{ if (widths[i]) th.style.width = widths[i]+'px'; }); }
   } catch {}
+}
+
+// 查看详情：入库/出库/库存/订单
+function showDetailModal(title, html){
+  const modal = document.getElementById('modal');
+  const modalTitle = document.getElementById('modal-title');
+  const modalBody = document.getElementById('modal-body');
+  modalTitle.textContent = title; modalBody.innerHTML = html; modal.style.display='block';
+}
+async function viewInbound(no){
+  const d = await apiFetch(`/api/admin/inbound/${encodeURIComponent(no)}`).then(r=>r.json()).catch(()=>null);
+  if (!d) return alert('加载失败');
+  showDetailModal('入库详情', `<div class="detail"><p>入库单号：${d.inbound_number||''}</p><p>商品：${d.product_name||''}（${d.sku||''}）</p><p>数量：${d.quantity||''}</p><p>时间：${d.created_at||''}</p><p>供应商：${d.supplier||''}</p></div>`);
+}
+async function viewOutbound(no){
+  const d = await apiFetch(`/api/admin/outbound/${encodeURIComponent(no)}`).then(r=>r.json()).catch(()=>null);
+  if (!d) return alert('加载失败');
+  showDetailModal('出库详情', `<div class="detail"><p>出库单号：${d.outbound_number||''}</p><p>商品：${d.product_name||''}（${d.sku||''}）</p><p>数量：${d.quantity||''}</p><p>客户：${d.customer||''}</p><p>时间：${d.created_at||''}</p></div>`);
+}
+async function viewInventory(sku){
+  const d = await apiFetch(`/api/admin/inventory/${encodeURIComponent(sku)}`).then(r=>r.json()).catch(()=>null);
+  if (!d) return alert('加载失败');
+  showDetailModal('库存详情', `<div class="detail"><p>SKU：${d.sku||''}</p><p>名称：${d.name||''}</p><p>当前库存：${d.current_stock||0}</p><p>可用库存：${d.available_stock||0}</p><p>预留库存：${d.reserved_stock||0}</p><p>更新时间：${d.last_updated||''}</p></div>`);
+}
+async function viewOrder(no){
+  const d = await apiFetch(`/api/admin/orders/${encodeURIComponent(no)}`).then(r=>r.json()).catch(()=>null);
+  if (!d || !d.order) return alert('加载失败');
+  showDetailModal('订单详情', `<div class="detail"><p>订单号：${d.order.order_number}</p><p>客户：${d.order.customer_name||''}</p><p>金额：${d.order.total_amount||0}</p><p>状态：${d.order.status||''}</p></div>`);
 }
