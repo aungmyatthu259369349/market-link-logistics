@@ -765,12 +765,21 @@ function loadOutboundData(){
       tbody.innerHTML = (d.rows||[]).map(r => {
         const ref = (r.notes||'').match(/\[ref:([^\]]+)\]/i);
         const inboundRef = ref ? ref[1] : '';
+        const mPieces = (r.notes||'').match(/件数:([0-9]+)/);
+        const mTWeight = (r.notes||'').match(/总重量:([0-9.]+)kg/i);
+        const mTVol = (r.notes||'').match(/总体积:([0-9.]+)m3/i);
+        const pieces = mPieces ? mPieces[1] : '';
+        const totalWeight = mTWeight ? mTWeight[1] : '';
+        const totalVolume = mTVol ? mTVol[1] : '';
         return `
         <tr>
-          <td><input type="checkbox" class="row-select" value="${r.outbound_number||''}"></td>
+          <td><input type="checkbox" class="row-select" value="${r.outbound_number||''}" data-pieces="${pieces}" data-total-weight="${totalWeight}" data-total-volume="${totalVolume}"></td>
           <td>${inboundRef}</td>
           <td>${r.outbound_number||''}</td>
           <td>${r.customer||''}</td>
+          <td>${pieces}</td>
+          <td>${totalWeight}</td>
+          <td>${totalVolume}</td>
           <td>${r.quantity||''}</td>
           <td>${r.created_at||''}</td>
           <td><span class="status-badge ${r.status||''}">${r.status||''}</span></td>
@@ -1004,11 +1013,17 @@ async function viewInbound(no){
 async function viewOutbound(no){
   const d = await apiFetch(`/api/admin/outbound/${encodeURIComponent(no)}`).then(r=>r.json()).catch(()=>null);
   if (!d) return alert('加载失败');
+  const mPieces = String(d.notes||'').match(/件数:([0-9]+)/);
+  const mTWeight = String(d.notes||'').match(/总重量:([0-9.]+)kg/i);
+  const mTVol = String(d.notes||'').match(/总体积:([0-9.]+)m3/i);
   showDetailModal('出库详情', `<div class="detail">
     <p>入库单号：${d.inbound_ref||''}</p>
     <p>出库单号：${d.outbound_number||''}</p>
     <p>客户：${d.customer||''}</p>
     <p>商品：${d.product_name||''}（${d.sku||''}）</p>
+    <p>件数：${mPieces?mPieces[1]:''}</p>
+    <p>总重量(kg)：${mTWeight?mTWeight[1]:''}</p>
+    <p>总体积(m³)：${mTVol?mTVol[1]:''}</p>
     <p>数量：${d.quantity||''}</p>
     <p>目的地：${d.destination||''}</p>
     <p>出库时间：${d.created_at||d.outbound_time||''}</p>
