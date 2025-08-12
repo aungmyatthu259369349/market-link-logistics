@@ -399,7 +399,10 @@ app.post('/api/admin/inbound', requireAuth, requireAdmin, (req, res) => {
             return res.json({ success: true });
           });
         } else {
-          return res.json({ success: true });
+          // PG 环境也同步 inventory，避免触发器缺失导致页面显示为 0
+          db.run('UPDATE inventory SET current_stock = COALESCE(current_stock,0) + ?, available_stock = COALESCE(available_stock,0) + ?, last_updated = NOW() WHERE product_id = ?', [qty, qty, productId], ()=>{
+            return res.json({ success: true });
+          });
         }
       });
     });
@@ -712,7 +715,9 @@ app.post('/api/admin/outbound', requireAuth, requireAdmin, (req, res) => {
           return res.json({ success: true });
         });
       } else {
-        return res.json({ success: true });
+        db.run('UPDATE inventory SET current_stock = COALESCE(current_stock,0) - ?, available_stock = COALESCE(available_stock,0) - ?, last_updated = NOW() WHERE product_id = ?', [qty, qty, p.id], ()=>{
+          return res.json({ success: true });
+        });
       }
     });
   });
