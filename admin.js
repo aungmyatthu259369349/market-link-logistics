@@ -440,10 +440,6 @@ function createOutboundForm() {
                     <input type="number" name="pieces" min="0" step="1" placeholder="例如 10">
                 </div>
                 <div class="form-group">
-                    <label>单件重量(kg)</label>
-                    <input type="number" name="itemWeight" min="0" step="0.001" placeholder="例如 2.5">
-                </div>
-                <div class="form-group">
                     <label>总重量(kg)</label>
                     <input type="number" name="totalWeight" min="0" step="0.001" placeholder="自动/可手动填写">
                 </div>
