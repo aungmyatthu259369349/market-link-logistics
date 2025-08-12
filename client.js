@@ -20,8 +20,8 @@ function initializeClientArea() {
         showAuthSection();
     }
     
-    // 设置默认显示登录表单
-    showTab('login');
+    // 默认显示注册表单
+    showTab('register');
 }
 
 // 显示认证区域
