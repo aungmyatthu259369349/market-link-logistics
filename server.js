@@ -15,6 +15,25 @@ const db = require('./db-adapter');
 
 const app = express();
 
+// 日期规范化（仅日期）
+function normalizeDateOnly(input){
+  if (!input) return new Date().toISOString();
+  const s = String(input).trim();
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s}T00:00:00Z`;
+  // MM/DD/YYYY 或 DD/MM/YYYY（尽量按 MM/DD/YYYY 处理以匹配占位符）
+  const m1 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (m1){
+    const mm = m1[1].padStart(2,'0');
+    const dd = m1[2].padStart(2,'0');
+    const yyyy = m1[3];
+    return `${yyyy}-${mm}-${dd}T00:00:00Z`;
+  }
+  // 兜底：直接交给 Date 解析
+  const d = new Date(s); if (!isNaN(d.getTime())) return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())).toISOString();
+  return new Date().toISOString();
+}
+
 // 安全中间件（放宽 CSP 以便当前前端内联脚本与 onclick 正常运行）
 app.use(helmet({
   contentSecurityPolicy: {
@@ -367,10 +386,7 @@ app.post('/api/admin/inbound', requireAuth, requireAdmin, (req, res) => {
   }
   const createdBy = req.session.user?.id || null;
   // 规范化日期（仅日期则补 00:00:00）
-  let inboundAt = inboundTime || new Date().toISOString();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(String(inboundAt))) {
-    inboundAt = `${inboundAt}T00:00:00Z`;
-  }
+  const inboundAt = normalizeDateOnly(inboundTime);
   // 1) 确认/创建商品
   db.get('SELECT id FROM products WHERE name = ?', [productName], (e1, p) => {
     if (e1) return res.status(500).json({ error: '服务器错误' });
@@ -697,8 +713,7 @@ app.post('/api/admin/outbound', requireAuth, requireAdmin, (req, res) => {
     return res.status(400).json({ error: '参数不完整' });
   }
   const createdBy = req.session.user?.id || null;
-  let outboundAt = outboundTime || new Date().toISOString();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(String(outboundAt))) { outboundAt = `${outboundAt}T00:00:00Z`; }
+  const outboundAt = normalizeDateOnly(outboundTime);
 
   // 必须存在商品
   db.get('SELECT id FROM products WHERE name = ?', [productName], (e1, p) => {
