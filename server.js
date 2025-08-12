@@ -34,6 +34,22 @@ function normalizeDateOnly(input){
   return new Date().toISOString();
 }
 
+async function ensureTrackingForOutbound(outNo, customer, destination){
+  return new Promise((resolve)=>{
+    // 如果 tracking 不存在则创建，并追加一条更新
+    db.get('SELECT id FROM tracking WHERE tracking_number = ?', [outNo], (e, row)=>{
+      const createUpdate = ()=>{
+        const now = new Date().toISOString();
+        db.run('INSERT INTO tracking_updates (tracking_id, status, location, update_time, notes) SELECT id, ?, ?, ?, ? FROM tracking WHERE tracking_number = ?', ['已出库', destination||'仓库', now, customer||'', outNo], ()=>resolve());
+      };
+      if (row && row.id){ createUpdate(); }
+      else {
+        db.insert('INSERT INTO tracking (tracking_number, order_id, current_status, current_location, estimated_delivery) VALUES (?, NULL, ?, ?, NULL)', [outNo, '已出库', destination||'仓库'], ()=>createUpdate());
+      }
+    });
+  });
+}
+
 // 安全中间件（放宽 CSP 以便当前前端内联脚本与 onclick 正常运行）
 app.use(helmet({
   contentSecurityPolicy: {
@@ -265,11 +281,29 @@ app.get('/api/tracking/:trackingNumber', (req, res) => {
                FROM tracking t LEFT JOIN tracking_updates tu ON t.id = tu.tracking_id
                WHERE t.tracking_number = ? ORDER BY tu.update_time DESC LIMIT 1`;
   db.get(sql, [trackingNumber], (err, result) => {
-    if (err) return res.status(500).json({ error: '查询失败' });
-    if (!result) return res.status(404).json({ error: '未找到该跟踪号' });
-    db.all(`SELECT status, location, update_time, notes FROM tracking_updates WHERE tracking_id = (SELECT id FROM tracking WHERE tracking_number = ?) ORDER BY update_time DESC`, [trackingNumber], (e2, updates) => {
-      if (e2) updates = [];
-      res.json({ tracking_number: result.tracking_number, status: result.current_status, location: result.current_location, estimated_delivery: result.estimated_delivery, updates: updates || [] });
+    if (!err && result) {
+      db.all(`SELECT status, location, update_time, notes FROM tracking_updates WHERE tracking_id = (SELECT id FROM tracking WHERE tracking_number = ?) ORDER BY update_time DESC`, [trackingNumber], (e2, updates) => {
+        if (e2) updates = [];
+        return res.json({ tracking_number: result.tracking_number, status: result.current_status||result.status, location: result.current_location||result.location, estimated_delivery: result.estimated_delivery, updates: updates || [] });
+      });
+      return;
+    }
+    // Fallback 1: 出库单号
+    db.get('SELECT outbound_number, customer, destination, created_at FROM outbound_records WHERE outbound_number = ?', [trackingNumber], (e3, ob) => {
+      if (!e3 && ob) {
+        return res.json({ tracking_number: ob.outbound_number, status: '已出库', location: ob.destination||'仓库', estimated_delivery: null, updates: [{ status:'已出库', location: ob.destination||'仓库', update_time: ob.created_at, notes: ob.customer||'' }] });
+      }
+      // Fallback 2: 入库单号 => 聚合分批出库
+      db.get('SELECT id, inbound_number, quantity, product_id, supplier, created_at FROM inbound_records WHERE inbound_number = ?', [trackingNumber], (e4, inb) => {
+        if (e4 || !inb) return res.status(404).json({ error: '未找到该跟踪号' });
+        db.all("SELECT outbound_number, quantity, customer, destination, created_at FROM outbound_records WHERE notes LIKE ? ORDER BY created_at DESC", [`%[ref:${trackingNumber}]%`], (e5, outs)=>{
+          const totalOut = (outs||[]).reduce((s,r)=>s + (parseInt(r.quantity||0,10)||0), 0);
+          const remain = (parseInt(inb.quantity||0,10)||0) - totalOut;
+          const status = remain <= 0 ? '已全部出库' : (totalOut>0 ? '部分出库' : '未出库');
+          const updates = (outs||[]).map(r=>({ status:'已出库', location:r.destination||'仓库', update_time:r.created_at, notes:`客户:${r.customer||''} 出库单:${r.outbound_number}` }));
+          return res.json({ tracking_number: inb.inbound_number, status, location: null, estimated_delivery: null, updates, inbound_quantity: inb.quantity, outbound_total: totalOut, remaining: remain });
+        });
+      });
     });
   });
 });
@@ -750,7 +784,10 @@ app.post('/api/admin/outbound', requireAuth, requireAdmin, (req, res) => {
         const finish = () => {
           db.get('SELECT current_stock FROM inventory WHERE product_id = ?', [p.id], (e3, r3)=>{
             const left = r3 ? parseInt(r3.current_stock||0,10) : null;
-            return res.json({ success: true, remaining: left, outbound_number: finalOutboundNo, inbound_ref: inboundRef });
+            // 写入/更新跟踪
+            ensureTrackingForOutbound(finalOutboundNo, customer, destination).then(()=>{
+              return res.json({ success: true, remaining: left, outbound_number: finalOutboundNo, inbound_ref: inboundRef });
+            });
           });
         };
         if (!db.isPg) {
