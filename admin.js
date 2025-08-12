@@ -595,8 +595,8 @@ function submitOutbound(event) {
         const skuInfo = await (async ()=>{ try{ const r = await apiFetch(`/api/admin/inventory/${encodeURIComponent(data.productName)}`); return await r.json(); }catch{return null;} })();
         const left = skuInfo ? (skuInfo.current_stock ?? skuInfo.available_stock ?? 0) : '—';
         showNotification(`出库单创建成功！当前剩余：${left}`, 'success');
-        closeModal();
-        loadOutboundData();
+    closeModal();
+    loadOutboundData();
         loadInventoryData();
       })
       .catch(()=>showNotification('网络错误', 'error'));
@@ -740,9 +740,13 @@ function loadOutboundData(){
   const qs = new URLSearchParams({ page: outboundPage, pageSize: outboundPageSize, search, status, startDate, endDate, sort: outboundSort }).toString();
   apiFetch(`/api/admin/outbound?${qs}`).then(r=>r.json()).then(d=>{
       const tbody = document.getElementById('outbound-table-body');
-      tbody.innerHTML = (d.rows||[]).map(r => `
+      tbody.innerHTML = (d.rows||[]).map(r => {
+        const ref = (r.notes||'').match(/\[ref:([^\]]+)\]/i);
+        const inboundRef = ref ? ref[1] : '';
+        return `
         <tr>
           <td><input type="checkbox" class="row-select" value="${r.outbound_number||''}"></td>
+          <td>${inboundRef}</td>
           <td>${r.outbound_number||''}</td>
           <td>${r.customer||''}</td>
           <td>${r.quantity||''}</td>
@@ -751,7 +755,8 @@ function loadOutboundData(){
           <td>
             <button class="btn btn-small" onclick="viewOutbound('${r.outbound_number||''}')">查看</button>
           </td>
-        </tr>`).join('');
+        </tr>`;
+      }).join('');
       buildPagination('outbound-pagination', d.page, d.pageSize, d.total, 'filterOutbound');
     });
 }
@@ -988,4 +993,4 @@ async function viewOrder(no){
   const d = await apiFetch(`/api/admin/orders/${encodeURIComponent(no)}`).then(r=>r.json()).catch(()=>null);
   if (!d || !d.order) return alert('加载失败');
   showDetailModal('订单详情', `<div class="detail"><p>订单号：${d.order.order_number}</p><p>客户：${d.order.customer_name||''}</p><p>金额：${d.order.total_amount||0}</p><p>状态：${d.order.status||''}</p></div>`);
-}
+} 

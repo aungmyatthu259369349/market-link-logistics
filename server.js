@@ -456,7 +456,7 @@ app.get('/api/admin/outbound', requireAuth, requireAdmin, (req, res) => {
   if (endDate) { where.push('ob.created_at <= ?'); params.push(endDate); }
   const whereSql = where.length ? ('WHERE ' + where.join(' AND ')) : '';
   const orderBy = sanitizeSort(sort, ['outbound_number','customer','quantity','created_at','status'], 'created_at DESC');
-  const baseSql = `SELECT ob.outbound_number, ob.customer, ob.quantity, ob.created_at, ob.status, p.name as product_name, p.sku
+  const baseSql = `SELECT ob.outbound_number, ob.customer, ob.quantity, ob.created_at, ob.status, p.name as product_name, p.sku, ob.notes
                    FROM outbound_records ob LEFT JOIN products p ON ob.product_id = p.id ${whereSql} ORDER BY ${orderBy}`;
   const pagedSql = `${baseSql} LIMIT ? OFFSET ?`;
   const runSql = (exp === 'csv' && scope === 'page') ? pagedSql : baseSql;
