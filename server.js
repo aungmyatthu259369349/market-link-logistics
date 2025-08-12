@@ -427,7 +427,7 @@ app.post('/api/admin/inbound', requireAuth, requireAdmin, (req, res) => {
     const ensureProduct = (cb) => {
       if (p && p.id) return cb(null, p.id);
       const sku = 'SKU' + Date.now();
-      db.insert('INSERT INTO products (sku, name, category) VALUES (?, ?, ?)', [sku, productName, null], (e2, productId) => {
+      db.insert('INSERT INTO products (sku, name, category) VALUES (?, ?, ?)', [sku, productName, 'general'], (e2, productId) => {
         if (e2) return cb(e2);
         db.run('INSERT INTO inventory (product_id, current_stock, reserved_stock, available_stock) VALUES (?, 0, 0, 0)', [productId], ()=>{
           cb(null, productId);
