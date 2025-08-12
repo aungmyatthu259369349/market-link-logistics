@@ -716,7 +716,7 @@ app.post('/api/admin/outbound', requireAuth, requireAdmin, (req, res) => {
   const outboundAt = normalizeDateOnly(outboundTime);
 
   // 必须存在商品
-  db.get('SELECT id FROM products WHERE name = ?', [productName], (e1, p) => {
+  db.get('SELECT id FROM products WHERE UPPER(TRIM(name)) = UPPER(TRIM(?)) OR UPPER(TRIM(sku)) = UPPER(TRIM(?))', [productName, productName], (e1, p) => {
     if (e1) return res.status(500).json({ error: '服务器错误' });
     if (!p || !p.id) return res.status(400).json({ error: '商品不存在，请先入库创建' });
 
@@ -732,14 +732,16 @@ app.post('/api/admin/outbound', requireAuth, requireAdmin, (req, res) => {
                    VALUES (?, NULL, ?, ?, ?, ?, 'completed', ?, ?, ?)`;
       db.insert(sql, [outboundNumber || null, customer, p.id, qty, destination || '', outboundAt, notes || '', createdBy], (e2)=>{
         if (e2) return res.status(500).json({ error: '创建出库失败' });
+        const finish = () => {
+          db.get('SELECT current_stock FROM inventory WHERE product_id = ?', [p.id], (e3, r3)=>{
+            const left = r3 ? parseInt(r3.current_stock||0,10) : null;
+            return res.json({ success: true, remaining: left });
+          });
+        };
         if (!db.isPg) {
-          db.run('UPDATE inventory SET current_stock = current_stock - ?, available_stock = available_stock - ?, last_updated = CURRENT_TIMESTAMP WHERE product_id = ?', [qty, qty, p.id], ()=>{
-            return res.json({ success: true });
-          });
+          db.run('UPDATE inventory SET current_stock = current_stock - ?, available_stock = available_stock - ?, last_updated = CURRENT_TIMESTAMP WHERE product_id = ?', [qty, qty, p.id], finish);
         } else {
-          db.run('UPDATE inventory SET current_stock = COALESCE(current_stock,0) - ?, available_stock = COALESCE(available_stock,0) - ?, last_updated = NOW() WHERE product_id = ?', [qty, qty, p.id], ()=>{
-            return res.json({ success: true });
-          });
+          db.run('UPDATE inventory SET current_stock = COALESCE(current_stock,0) - ?, available_stock = COALESCE(available_stock,0) - ?, last_updated = NOW() WHERE product_id = ?', [qty, qty, p.id], finish);
         }
       });
     });
