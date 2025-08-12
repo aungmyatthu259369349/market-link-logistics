@@ -982,7 +982,16 @@ async function viewInbound(no){
 async function viewOutbound(no){
   const d = await apiFetch(`/api/admin/outbound/${encodeURIComponent(no)}`).then(r=>r.json()).catch(()=>null);
   if (!d) return alert('加载失败');
-  showDetailModal('出库详情', `<div class="detail"><p>出库单号：${d.outbound_number||''}</p><p>商品：${d.product_name||''}（${d.sku||''}）</p><p>数量：${d.quantity||''}</p><p>客户：${d.customer||''}</p><p>时间：${d.created_at||''}</p></div>`);
+  showDetailModal('出库详情', `<div class="detail">
+    <p>入库单号：${d.inbound_ref||''}</p>
+    <p>出库单号：${d.outbound_number||''}</p>
+    <p>客户：${d.customer||''}</p>
+    <p>商品：${d.product_name||''}（${d.sku||''}）</p>
+    <p>数量：${d.quantity||''}</p>
+    <p>目的地：${d.destination||''}</p>
+    <p>出库时间：${d.created_at||d.outbound_time||''}</p>
+    <p>当前剩余库存：${(d.remaining??'')===null?'':d.remaining}</p>
+  </div>`);
 }
 async function viewInventory(sku){
   const d = await apiFetch(`/api/admin/inventory/${encodeURIComponent(sku)}`).then(r=>r.json()).catch(()=>null);

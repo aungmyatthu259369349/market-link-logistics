@@ -619,7 +619,12 @@ app.get('/api/admin/outbound/:outboundNumber', requireAuth, requireAdmin, (req, 
   db.get(sql, [id], (err, row) => {
     if (err) return res.status(500).json({ error: '服务器错误' });
     if (!row) return res.status(404).json({ error: '未找到记录' });
-    res.json(row);
+    const m = String(row.notes||'').match(/\[ref:([^\]]+)\]/i);
+    const inbound_ref = m ? m[1] : null;
+    db.get('SELECT current_stock FROM inventory WHERE product_id = ?', [row.product_id], (e2, srow)=>{
+      const remaining = srow ? parseInt(srow.current_stock||0,10) : null;
+      res.json({ ...row, inbound_ref, remaining });
+    });
   });
 });
 
