@@ -31,7 +31,7 @@ async function initializeAdminSystem() {
       // 若会话无效，apiFetch 已处理重定向
       return;
     }
-
+    
     // 初始化侧边栏
     initializeSidebar();
     // 初始化图表
@@ -486,9 +486,9 @@ function submitInbound(event) {
       .then(r=>r.json())
       .then(d=>{
         if (!d.success) { showNotification(d.error||'创建失败', 'error'); return; }
-        showNotification('入库单创建成功！', 'success');
-        closeModal();
-        loadInboundData();
+    showNotification('入库单创建成功！', 'success');
+    closeModal();
+    loadInboundData();
         // 同步刷新库存列表，方便你马上看到库存变化
         loadInventoryData();
       })
@@ -504,9 +504,9 @@ function submitOutbound(event) {
       .then(r=>r.json())
       .then(d=>{
         if (!d.success) { showNotification(d.error||'创建失败', 'error'); return; }
-        showNotification('出库单创建成功！', 'success');
-        closeModal();
-        loadOutboundData();
+    showNotification('出库单创建成功！', 'success');
+    closeModal();
+    loadOutboundData();
         loadInventoryData();
       })
       .catch(()=>showNotification('网络错误', 'error'));

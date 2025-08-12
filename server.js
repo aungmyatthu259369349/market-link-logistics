@@ -611,11 +611,24 @@ app.get('/api/admin/inventory/:sku', requireAuth, requireAdmin, (req, res) => {
 
 // 产品列表（供选择/自动完成使用）
 app.get('/api/admin/products', requireAuth, requireAdmin, (req, res) => {
-  const { search = '', inStockOnly = '' } = req.query;
+  const { search = '', inStockOnly = '', customer = '' } = req.query;
   const params = [];
   const whereParts = [];
   if (search) { whereParts.push('(p.name LIKE ? OR p.sku LIKE ?)'); params.push(`%${search}%`, `%${search}%`); }
   const whereSql = whereParts.length ? 'WHERE ' + whereParts.join(' AND ') : '';
+
+  // 子查询：按客户统计曾经出库过的商品次数，用于排序优先级
+  const customerMetricPg = customer ? `(
+      SELECT product_id, COUNT(1) AS used_cnt
+      FROM outbound_records WHERE customer ILIKE $${params.length + 1}
+      GROUP BY product_id
+    ) oc` : null;
+  const customerMetricLite = customer ? `(
+      SELECT product_id, COUNT(1) AS used_cnt
+      FROM outbound_records WHERE customer LIKE ?
+      GROUP BY product_id
+    ) oc` : null;
+  if (customer) params.push(`%${customer}%`);
 
   const sqlPg = `
       WITH mv AS (
@@ -623,19 +636,23 @@ app.get('/api/admin/products', requireAuth, requireAdmin, (req, res) => {
         FROM inventory_movements GROUP BY product_id
       )
       SELECT p.id, p.sku, p.name, p.category,
-             COALESCE(mv.qty_sum, COALESCE(i.current_stock,0)) AS current_stock
+             COALESCE(mv.qty_sum, COALESCE(i.current_stock,0)) AS current_stock,
+             ${customer ? 'COALESCE(oc.used_cnt, 0)' : '0'} AS used_cnt
       FROM products p
       LEFT JOIN inventory i ON i.product_id = p.id
       LEFT JOIN mv ON mv.product_id = p.id
+      ${customer ? 'LEFT JOIN ' + customerMetricPg + ' ON oc.product_id = p.id' : ''}
       ${whereSql}
       ${inStockOnly ? 'HAVING COALESCE(mv.qty_sum, COALESCE(i.current_stock,0)) > 0' : ''}
-      ORDER BY p.name ASC
+      ORDER BY ${customer ? 'used_cnt DESC NULLS LAST,' : ''} p.name ASC
       LIMIT 100`;
-  const sqlLiteLike = `SELECT p.id, p.sku, p.name, p.category, COALESCE(i.current_stock,0) AS current_stock
+  const sqlLiteLike = `SELECT p.id, p.sku, p.name, p.category, COALESCE(i.current_stock,0) AS current_stock,
+             ${customer ? 'COALESCE(oc.used_cnt, 0)' : '0'} AS used_cnt
            FROM products p LEFT JOIN inventory i ON i.product_id = p.id
+           ${customer ? 'LEFT JOIN ' + customerMetricLite + ' ON oc.product_id = p.id' : ''}
            ${whereSql}
-           ${inStockOnly ? 'AND COALESCE(i.current_stock,0) > 0' : ''}
-           ORDER BY p.name ASC LIMIT 100`;
+           ${inStockOnly ? (whereSql ? ' AND ' : 'WHERE ') + 'COALESCE(i.current_stock,0) > 0' : ''}
+           ORDER BY ${customer ? 'used_cnt DESC,' : ''} p.name ASC LIMIT 100`;
 
   const sql = db.isPg ? sqlPg : sqlLiteLike;
   db.all(sql, params, (err, rows)=>{
