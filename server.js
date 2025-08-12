@@ -460,13 +460,11 @@ app.get('/api/admin/inventory', requireAuth, requireAdmin, (req, res) => {
   const where = []; const params = [];
   if (search) { where.push('(p.name LIKE ? OR p.sku LIKE ? OR p.description LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
   if (category) { where.push('p.category = ?'); params.push(category); }
-  const orderBy = sanitizeSort(sort, ['p.sku','p.name','p.category','i.current_stock','p.safety_stock','stock_status','p.created_at'], 'p.created_at DESC');
+  const orderBy = sanitizeSort(sort, ['p.sku','p.name','p.category','current_stock','p.safety_stock','stock_status','p.created_at'], 'p.created_at DESC');
 
   const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
-  let baseSql;
-  if (db.isPg) {
-    baseSql = `
+  const sqlPg = `
       WITH mv AS (
         SELECT product_id, SUM(qty) AS qty_sum
         FROM inventory_movements
@@ -485,17 +483,32 @@ app.get('/api/admin/inventory', requireAuth, requireAdmin, (req, res) => {
       LEFT JOIN mv ON mv.product_id = p.id
       ${whereSql}
       ORDER BY ${orderBy}`;
-  } else {
-    baseSql = `SELECT p.sku, p.name, p.category, p.safety_stock, i.current_stock, i.available_stock, i.reserved_stock, i.last_updated,
+
+  const sqlLiteLike = `SELECT p.sku, p.name, p.category, p.safety_stock, i.current_stock, i.available_stock, i.reserved_stock, i.last_updated,
                    CASE WHEN i.current_stock > p.safety_stock THEN 'in-stock' WHEN i.current_stock > 0 THEN 'low-stock' ELSE 'out-of-stock' END as stock_status
                    FROM products p LEFT JOIN inventory i ON p.id = i.product_id ${whereSql}
                    ORDER BY ${orderBy}`;
-  }
 
+  const baseSql = db.isPg ? sqlPg : sqlLiteLike;
   const pagedSql = `${baseSql} LIMIT ? OFFSET ?`;
   const runSql = (exp === 'csv' && scope === 'page') ? pagedSql : baseSql;
   const runParams = (exp === 'csv' && scope === 'page') ? params.concat([pageSize, offset]) : params;
   db.all(runSql, runParams, (err, rows) => {
+    if (err && db.isPg) {
+      // 回退执行：避免因缺少 inventory_movements 等对象导致失败
+      const fbBase = sqlLiteLike;
+      const fbPaged = `${fbBase} LIMIT ? OFFSET ?`;
+      const fbSql = (exp === 'csv' && scope === 'page') ? fbPaged : fbBase;
+      const fbParams = (exp === 'csv' && scope === 'page') ? params.concat([pageSize, offset]) : params;
+      return db.all(fbSql, fbParams, (e2, rows2) => {
+        if (e2) return res.status(500).json({ error: '获取库存信息失败' });
+        if (exp === 'csv') return sendCsv(res, 'inventory.csv', rows2);
+        db.get(`SELECT COUNT(1) as cnt FROM products p LEFT JOIN inventory i ON p.id = i.product_id ${whereSql}`, params, (cErr, r2) => {
+          const total = r2 ? r2.cnt || 0 : 0;
+          res.json({ page, pageSize, total, rows: rows2 });
+        });
+      });
+    }
     if (err) return res.status(500).json({ error: '获取库存信息失败' });
     if (exp === 'csv') return sendCsv(res, 'inventory.csv', rows);
     db.get(`SELECT COUNT(1) as cnt FROM products p LEFT JOIN inventory i ON p.id = i.product_id ${whereSql}`, params, (e2, r2) => {
@@ -604,9 +617,7 @@ app.get('/api/admin/products', requireAuth, requireAdmin, (req, res) => {
   if (search) { whereParts.push('(p.name LIKE ? OR p.sku LIKE ?)'); params.push(`%${search}%`, `%${search}%`); }
   const whereSql = whereParts.length ? 'WHERE ' + whereParts.join(' AND ') : '';
 
-  let sql;
-  if (db.isPg) {
-    sql = `
+  const sqlPg = `
       WITH mv AS (
         SELECT product_id, SUM(qty) AS qty_sum
         FROM inventory_movements GROUP BY product_id
@@ -620,14 +631,21 @@ app.get('/api/admin/products', requireAuth, requireAdmin, (req, res) => {
       ${inStockOnly ? 'HAVING COALESCE(mv.qty_sum, COALESCE(i.current_stock,0)) > 0' : ''}
       ORDER BY p.name ASC
       LIMIT 100`;
-  } else {
-    sql = `SELECT p.id, p.sku, p.name, p.category, COALESCE(i.current_stock,0) AS current_stock
+  const sqlLiteLike = `SELECT p.id, p.sku, p.name, p.category, COALESCE(i.current_stock,0) AS current_stock
            FROM products p LEFT JOIN inventory i ON i.product_id = p.id
            ${whereSql}
            ${inStockOnly ? 'AND COALESCE(i.current_stock,0) > 0' : ''}
            ORDER BY p.name ASC LIMIT 100`;
-  }
+
+  const sql = db.isPg ? sqlPg : sqlLiteLike;
   db.all(sql, params, (err, rows)=>{
+    if (err && db.isPg) {
+      // 回退：PG 环境但无 inventory_movements 表
+      return db.all(sqlLiteLike, params, (e2, rows2)=>{
+        if (e2) return res.status(500).json({ error: '获取商品失败' });
+        return res.json({ rows: rows2 });
+      });
+    }
     if (err) return res.status(500).json({ error: '获取商品失败' });
     res.json({ rows });
   });
