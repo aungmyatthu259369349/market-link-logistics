@@ -24,8 +24,7 @@
                 <li><a href="index.html#calculator" class="nav-link">价格计算</a></li>
                 <li><a href="index.html#about" class="nav-link">关于我们</a></li>
                 <li><a href="index.html#contact" class="nav-link">联系我们</a></li>
-                <li><a href="client-login.html" class="nav-link client-link">登录</a></li>
-                <li><a href="client-register.html" class="nav-link">注册</a></li>
+                <li><a href="#" class="nav-link client-link">登录</a></li>
             </ul>
             <div class="nav-toggle">
                 <span class="bar"></span>
@@ -40,18 +39,17 @@
         <div class="container">
             <div class="client-hero-content">
                 <h1>欢迎来到客户专区</h1>
-                <p>在这里，您可以管理您的账户、查看订单状态、下载发票等</p>
+                <p>在这里，您可以登录账户、查看订单状态、下载发票等</p>
             </div>
         </div>
     </section>
 
-    <!-- 客户登录/注册 -->
+    <!-- 客户登录/忘记密码 -->
     <section class="client-auth">
         <div class="container">
             <div class="auth-container">
                 <div class="auth-tabs">
                     <button class="auth-tab active" onclick="showTab('login')">登录</button>
-                    <button class="auth-tab" onclick="showTab('register')">注册</button>
                 </div>
                 
                 <!-- 登录表单 -->
@@ -78,41 +76,6 @@
                     </p>
                 </div>
 
-                <!-- 注册表单 -->
-                <div id="register" class="auth-form">
-                    <h2>客户注册</h2>
-                    <form id="registerForm">
-                        <div class="form-group">
-                            <label>公司名称</label>
-                            <input type="text" placeholder="请输入公司名称" required>
-                        </div>
-                        <div class="form-group">
-                            <label>联系人姓名</label>
-                            <input type="text" placeholder="请输入联系人姓名" required>
-                        </div>
-                        <div class="form-group">
-                            <label>邮箱</label>
-                            <input type="email" placeholder="请输入邮箱" required>
-                        </div>
-                        <div class="form-group">
-                            <label>电话</label>
-                            <input type="tel" placeholder="请输入电话" required>
-                        </div>
-                        <div class="form-group">
-                            <label>密码</label>
-                            <input type="password" placeholder="请输入密码" required>
-                        </div>
-                        <div class="form-group">
-                            <label>确认密码</label>
-                            <input type="password" placeholder="请再次输入密码" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary">注册</button>
-                    </form>
-                    <p class="auth-link" style="text-align:center;margin-top:1rem;">
-                        <button class="btn btn-secondary btn-small" onclick="showTab('login')">返回登录</button>
-                    </p>
-                </div>
-
                 <!-- 忘记密码 -->
                 <div id="forgot" class="auth-form">
                     <h2>忘记密码</h2>
@@ -131,7 +94,7 @@
         </div>
     </section>
 
-    <!-- 客户功能区域 -->
+    <!-- 客户功能区域（登录后显示） -->
     <section class="client-dashboard" id="dashboard" style="display: none;">
         <div class="container">
             <div class="dashboard-header">

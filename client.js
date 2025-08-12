@@ -20,8 +20,8 @@ function initializeClientArea() {
         showAuthSection();
     }
     
-    // 默认显示注册表单
-    showTab('register');
+    // 默认显示登录表单
+    showTab('login');
 }
 
 // 显示认证区域
@@ -71,12 +71,6 @@ function setupFormValidation() {
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
-    }
-    
-    // 注册表单
-    const registerForm = document.getElementById('registerForm');
-    if (registerForm) {
-        registerForm.addEventListener('submit', handleRegister);
     }
     
     // 忘记密码表单
@@ -131,59 +125,6 @@ async function handleLogin(event) {
     } catch (error) {
         console.error('登录失败:', error);
         showNotification('登录失败，请检查网络连接', 'error');
-    }
-}
-
-// 处理注册
-async function handleRegister(event) {
-    event.preventDefault();
-    
-    const formData = new FormData(event.target);
-    const companyName = formData.get('companyName') || event.target.querySelector('input[type="text"]').value;
-    const contactName = formData.get('contactName') || event.target.querySelectorAll('input[type="text"]')[1].value;
-    const email = formData.get('email') || event.target.querySelector('input[type="email"]').value;
-    const phone = formData.get('phone') || event.target.querySelector('input[type="tel"]').value;
-    const password = formData.get('password') || event.target.querySelector('input[type="password"]').value;
-    const confirmPassword = formData.get('confirmPassword') || event.target.querySelectorAll('input[type="password"]')[1].value;
-    
-    // 验证密码
-    if (password !== confirmPassword) {
-        showNotification('密码不一致，请重新输入', 'error');
-        return;
-    }
-    
-    if (!companyName || !contactName || !email || !phone || !password) {
-        showNotification('请填写所有必填信息', 'error');
-        return;
-    }
-
-    try {
-        const response = await fetch('/api/auth/register', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                username: email, // 使用邮箱作为用户名
-                email,
-                password,
-                company_name: companyName,
-                contact_name: contactName,
-                phone
-            })
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-        showNotification('注册成功！请登录', 'success');
-        showTab('login');
-    } else {
-            showNotification(data.error || '注册失败', 'error');
-        }
-    } catch (error) {
-        console.error('注册失败:', error);
-        showNotification('注册失败，请检查网络连接', 'error');
     }
 }
 
