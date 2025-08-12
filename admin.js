@@ -414,9 +414,9 @@ function createOutboundForm() {
                     <input type="text" name="customer" required>
                 </div>
                 <div class="form-group">
-                    <label>出库单号</label>
-                    <select name="outboundNumber" id="outboundNumberSelect" required>
-                      <option value="" disabled selected>请选择历史入库单号</option>
+                    <label>出库单号（可留空，自动生成）</label>
+                    <select name="outboundNumber" id="outboundNumberSelect">
+                      <option value="" selected>选择历史入库单号（仅用于自动带出商品，可留空）</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -586,6 +586,7 @@ function submitOutbound(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
     const data = Object.fromEntries(formData);
+    if (!data.outboundNumber) { delete data.outboundNumber; }
     apiFetch('/api/admin/outbound', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) })
       .then(r=>r.json())
       .then(async d=>{

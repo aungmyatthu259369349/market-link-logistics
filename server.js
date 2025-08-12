@@ -706,19 +706,27 @@ app.post('/api/admin/outbound', requireAuth, requireAdmin, (req, res) => {
     if (!p || !p.id) return res.status(400).json({ error: '商品不存在，请先入库创建' });
 
     const qty = parseInt(quantity,10)||0;
-    const sql = `INSERT INTO outbound_records (outbound_number, order_id, customer, product_id, quantity, destination, status, outbound_time, notes, created_by)
-                 VALUES (?, NULL, ?, ?, ?, ?, 'completed', ?, ?, ?)`;
-    db.insert(sql, [outboundNumber || null, customer, p.id, qty, destination || '', outboundAt, notes || '', createdBy], (e2)=>{
-      if (e2) return res.status(500).json({ error: '创建出库失败' });
-      if (!db.isPg) {
-        db.run('UPDATE inventory SET current_stock = current_stock - ?, available_stock = available_stock - ?, last_updated = CURRENT_TIMESTAMP WHERE product_id = ?', [qty, qty, p.id], ()=>{
-          return res.json({ success: true });
-        });
-      } else {
-        db.run('UPDATE inventory SET current_stock = COALESCE(current_stock,0) - ?, available_stock = COALESCE(available_stock,0) - ?, last_updated = NOW() WHERE product_id = ?', [qty, qty, p.id], ()=>{
-          return res.json({ success: true });
-        });
-      }
+    if (qty <= 0) return res.status(400).json({ error: '数量必须大于0' });
+
+    // 先检查当前可用库存
+    db.get('SELECT current_stock FROM inventory WHERE product_id = ?', [p.id], (ckErr, stockRow) => {
+      const current = stockRow ? parseInt(stockRow.current_stock||0,10) : 0;
+      if (current < qty) return res.status(400).json({ error: `库存不足（当前 ${current}），无法出库 ${qty}` });
+
+      const sql = `INSERT INTO outbound_records (outbound_number, order_id, customer, product_id, quantity, destination, status, outbound_time, notes, created_by)
+                   VALUES (?, NULL, ?, ?, ?, ?, 'completed', ?, ?, ?)`;
+      db.insert(sql, [outboundNumber || null, customer, p.id, qty, destination || '', outboundAt, notes || '', createdBy], (e2)=>{
+        if (e2) return res.status(500).json({ error: '创建出库失败' });
+        if (!db.isPg) {
+          db.run('UPDATE inventory SET current_stock = current_stock - ?, available_stock = available_stock - ?, last_updated = CURRENT_TIMESTAMP WHERE product_id = ?', [qty, qty, p.id], ()=>{
+            return res.json({ success: true });
+          });
+        } else {
+          db.run('UPDATE inventory SET current_stock = COALESCE(current_stock,0) - ?, available_stock = COALESCE(available_stock,0) - ?, last_updated = NOW() WHERE product_id = ?', [qty, qty, p.id], ()=>{
+            return res.json({ success: true });
+          });
+        }
+      });
     });
   });
 });
