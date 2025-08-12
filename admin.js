@@ -331,8 +331,9 @@ function createOutboundForm() {
                 </div>
                 <div class="form-group">
                     <label>出库单号</label>
-                    <input type="text" name="outboundNumber" list="outboundNoOptions" placeholder="选择历史入库单号" required>
-                    <datalist id="outboundNoOptions"></datalist>
+                    <select name="outboundNumber" id="outboundNumberSelect" required>
+                      <option value="" disabled selected>请选择历史入库单号</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>商品名称</label>
