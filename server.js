@@ -340,6 +340,24 @@ app.get('/api/admin/inbound', requireAuth, requireAdmin, (req, res) => {
   });
 });
 
+// 入库参考列表（按供应商/合作方关键词）
+app.get('/api/admin/inbound/list', requireAuth, requireAdmin, (req, res) => {
+  const party = (req.query.party || '').trim();
+  const params = [];
+  let where = '';
+  if (party) { where = 'WHERE ir.supplier LIKE ?'; params.push(`%${party}%`); }
+  const sql = `SELECT ir.inbound_number, ir.supplier, ir.quantity, ir.created_at,
+                      p.id as product_id, p.name as product_name, p.sku, p.category
+               FROM inbound_records ir
+               LEFT JOIN products p ON p.id = ir.product_id
+               ${where}
+               ORDER BY ir.created_at DESC LIMIT 200`;
+  db.all(sql, params, (err, rows)=>{
+    if (err) return res.status(500).json({ error: '获取入库记录失败' });
+    res.json({ rows });
+  });
+});
+
 // 新建入库
 app.post('/api/admin/inbound', requireAuth, requireAdmin, (req, res) => {
   const { supplier, inboundNumber, productName, category, quantity, inboundTime, notes } = req.body || {};

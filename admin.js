@@ -331,7 +331,8 @@ function createOutboundForm() {
                 </div>
                 <div class="form-group">
                     <label>出库单号</label>
-                    <input type="text" name="outboundNumber" required>
+                    <input type="text" name="outboundNumber" list="outboundNoOptions" placeholder="选择历史入库单号" required>
+                    <datalist id="outboundNoOptions"></datalist>
                 </div>
                 <div class="form-group">
                     <label>商品名称</label>
@@ -868,62 +869,6 @@ function loadPrefs(prefix){
     const sel = document.getElementById(`${prefix}-columns`);
     if (sel && cols){ Array.from(sel.options).forEach(o=>{ const c = cols.find(x=>x.key===o.value); if (c) o.selected = !!c.visible; }); toggleColumns(prefix); }
     const ths = document.querySelectorAll(`#${prefix}-table thead th`);
-    if (widths){ Object.keys(widths).forEach(i=>{ const th = ths[parseInt(i,10)]; if (th) th.style.width = widths[i]+'px'; }); }
+    if (ths && widths) { Array.from(ths).forEach((th,i)=>{ if (widths[i]) th.style.width = widths[i]+'px'; }); }
   } catch {}
 }
-// 在列显隐变动与拖拽结束后保存
-(function attachPrefsEvents(){
-  ['inbound','outbound','inventory','orders'].forEach(prefix=>{
-    const sel = document.getElementById(`${prefix}-columns`); if (sel) sel.addEventListener('change', ()=>savePrefs(prefix));
-  });
-})();
-
-// 列宽拖拽启用（定义缺失会导致脚本报错，进而所有按钮无响应）
-function enableColResize(tableId){
-  const table = document.getElementById(tableId); if (!table) return;
-  table.querySelectorAll('th .col-resizer').forEach(handle => {
-    let startX, startWidth, th;
-    handle.addEventListener('mousedown', e => {
-      th = handle.parentElement; startX = e.pageX; startWidth = th.offsetWidth; document.body.style.cursor='col-resize';
-      const onMove = (ev)=>{ const w = Math.max(60, startWidth + (ev.pageX - startX)); th.style.width = w+'px'; };
-      const onUp = ()=>{ document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.body.style.cursor='';
-        const prefix = tableId.replace('-table',''); savePrefs(prefix);
-      };
-      document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-    });
-  });
-}
-
-// 在tab激活时加载偏好
-function onTabActivated(tabId){
-  if (tabId==='inbound') { enableColResize('inbound-table'); loadPrefs('inbound'); }
-  if (tabId==='outbound') { enableColResize('outbound-table'); loadPrefs('outbound'); }
-  if (tabId==='inventory') { enableColResize('inventory-table'); loadPrefs('inventory'); }
-  if (tabId==='orders') { enableColResize('orders-table'); loadPrefs('orders'); }
-}
-// Hook到switchTab
-const _switchTab = switchTab;
-switchTab = function(tabId){ _switchTab(tabId); onTabActivated(tabId); }; 
-
-// 会话超时提醒与自动续期
-let sessionTimer, warnTimer;
-function scheduleSessionCheck(){
-  clearInterval(sessionTimer); clearTimeout(warnTimer);
-  sessionTimer = setInterval(async ()=>{
-    try{
-      const info = await fetch('/api/auth/session-info', { credentials:'include' }).then(r=>r.json());
-      const warnMs = 5*60*1000; // 提前5分钟提醒
-      if (info.remainingMs <= warnMs){
-        // 弹出提醒（避免重复，可简单用一次性）
-        if (!window.__sessionWarned){ window.__sessionWarned=true; alert('您的登录即将超时，系统将自动为您续期'); }
-        // 自动续期
-        await fetch('/api/auth/renew', { method:'POST', credentials:'include' });
-        window.__sessionWarned=false; // 续期后重置
-      }
-    }catch{}
-  }, 60*1000); // 每分钟检查一次
-}
-
-// 初始化时与每次tab切换后调用
-scheduleSessionCheck();
-const __origSwitchTab = switchTab; switchTab = function(tabId){ __origSwitchTab(tabId); scheduleSessionCheck(); }; 
