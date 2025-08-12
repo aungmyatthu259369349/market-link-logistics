@@ -414,8 +414,8 @@ app.get('/api/admin/inbound/list', requireAuth, requireAdmin, (req, res) => {
 
 // 新建入库
 app.post('/api/admin/inbound', requireAuth, requireAdmin, (req, res) => {
-  const { supplier, inboundNumber, productName, category, quantity, inboundTime, notes } = req.body || {};
-  if (!supplier || !productName || !category || !quantity) {
+  const { supplier, inboundNumber, productName, quantity, inboundTime, notes, pieces, itemWeight, totalWeight, itemVolume, totalVolume } = req.body || {};
+  if (!supplier || !productName || !quantity) {
     return res.status(400).json({ error: '参数不完整' });
   }
   const createdBy = req.session.user?.id || null;
@@ -427,9 +427,8 @@ app.post('/api/admin/inbound', requireAuth, requireAdmin, (req, res) => {
     const ensureProduct = (cb) => {
       if (p && p.id) return cb(null, p.id);
       const sku = 'SKU' + Date.now();
-      db.insert('INSERT INTO products (sku, name, category) VALUES (?, ?, ?)', [sku, productName, category], (e2, productId) => {
+      db.insert('INSERT INTO products (sku, name, category) VALUES (?, ?, ?)', [sku, productName, null], (e2, productId) => {
         if (e2) return cb(e2);
-        // 初始化 inventory 行，防止库存页 LEFT JOIN 为空导致看不到新商品
         db.run('INSERT INTO inventory (product_id, current_stock, reserved_stock, available_stock) VALUES (?, 0, 0, 0)', [productId], ()=>{
           cb(null, productId);
         });
@@ -437,19 +436,25 @@ app.post('/api/admin/inbound', requireAuth, requireAdmin, (req, res) => {
     };
     ensureProduct((e3, productId) => {
       if (e3) return res.status(500).json({ error: '创建商品失败' });
-      // 2) 写入入库记录（编号若未提供，PG 触发器会自动生成；SQLite 下需要提供，但本项目线上为 PG）
+      // 组装备注追加
+      let finalNotes = notes || '';
+      const extra = [];
+      if (pieces) extra.push(`件数:${pieces}`);
+      if (itemWeight) extra.push(`单件重量:${itemWeight}kg`);
+      if (totalWeight) extra.push(`总重量:${totalWeight}kg`);
+      if (itemVolume) extra.push(`单件体积:${itemVolume}m3`);
+      if (totalVolume) extra.push(`总体积:${totalVolume}m3`);
+      if (extra.length) finalNotes = (finalNotes ? finalNotes + '; ' : '') + extra.join(', ');
       const sql = `INSERT INTO inbound_records (inbound_number, supplier, product_id, quantity, status, inbound_time, notes, created_by)
                    VALUES (?, ?, ?, ?, 'completed', ?, ?, ?)`;
       const qty = parseInt(quantity,10)||0;
-      db.insert(sql, [inboundNumber || null, supplier, productId, qty, inboundAt, notes || '', createdBy], (e4) => {
+      db.insert(sql, [inboundNumber || null, supplier, productId, qty, inboundAt, finalNotes, createdBy], (e4) => {
         if (e4) return res.status(500).json({ error: '创建入库失败' });
-        // 若运行在 SQLite（本地），没有触发器，手动同步库存
         if (!db.isPg) {
           db.run('UPDATE inventory SET current_stock = current_stock + ?, available_stock = available_stock + ?, last_updated = CURRENT_TIMESTAMP WHERE product_id = ?', [qty, qty, productId], ()=>{
             return res.json({ success: true });
           });
         } else {
-          // PG 环境也同步 inventory，避免触发器缺失导致页面显示为 0
           db.run('UPDATE inventory SET current_stock = COALESCE(current_stock,0) + ?, available_stock = COALESCE(available_stock,0) + ?, last_updated = NOW() WHERE product_id = ?', [qty, qty, productId], ()=>{
             return res.json({ success: true });
           });
