@@ -5,19 +5,35 @@ document.addEventListener('DOMContentLoaded', function() {
     loadDashboardData();
 });
 
+// 新增：统一请求封装，401 时自动跳转登录
+async function apiFetch(url, options = {}){
+  const res = await fetch(url, { credentials: 'include', ...options });
+  if (res.status === 401) {
+    try { localStorage.removeItem('adminLoggedIn'); localStorage.removeItem('adminUser'); } catch {}
+    const dest = 'admin-login.html?expired=1';
+    if (!location.href.endsWith(dest)) location.href = dest;
+    throw new Error('未登录或会话已过期');
+  }
+  return res;
+}
+
 // 初始化后台系统
-function initializeAdminSystem() {
-    // 检查登录状态
-    const isLoggedIn = localStorage.getItem('adminLoggedIn');
-    if (!isLoggedIn) {
-        // 未登录则跳转到后台登录页
-        window.location.href = 'admin-login.html';
-        return;
+async function initializeAdminSystem() {
+    // 先向服务器校验会话
+    try {
+      const who = await apiFetch('/api/auth/whoami').then(r=>r.json());
+      if (!who || !who.user || who.user.role !== 'admin') {
+        throw new Error('not admin');
+      }
+      localStorage.setItem('adminLoggedIn','true');
+      localStorage.setItem('adminUser', JSON.stringify(who.user));
+    } catch {
+      // 若会话无效，apiFetch 已处理重定向
+      return;
     }
-    
+
     // 初始化侧边栏
     initializeSidebar();
-    
     // 初始化图表
     initializeCharts();
 }
@@ -464,7 +480,7 @@ function submitInbound(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
     const data = Object.fromEntries(formData);
-    fetch('/api/admin/inbound', { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) })
+    apiFetch('/api/admin/inbound', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) })
       .then(r=>r.json())
       .then(d=>{
         if (!d.success) { showNotification(d.error||'创建失败', 'error'); return; }
@@ -593,7 +609,7 @@ let inboundPage = 1, inboundPageSize = 10;
 let inboundSort = 'created_at DESC';
 function setInboundPageSize(v){ inboundPageSize = parseInt(v,10)||10; filterInbound(1); }
 function sortInbound(field){ inboundSort = field + (inboundSort.includes('DESC')?' ASC':' DESC'); filterInbound(); }
-function fetchOpts(){ return { credentials: 'include' }; }
+function fetchOpts(){ return {}; }
 function authHeader(){ return {}; }
 function loadInboundData(){
   const search = document.getElementById('inbound-search')?.value || '';
@@ -601,7 +617,7 @@ function loadInboundData(){
   const startDate = document.getElementById('inbound-date-start')?.value || '';
   const endDate = document.getElementById('inbound-date-end')?.value || '';
   const qs = new URLSearchParams({ page: inboundPage, pageSize: inboundPageSize, search, status, startDate, endDate, sort: inboundSort }).toString();
-  fetch(`/api/admin/inbound?${qs}`, fetchOpts()).then(r=>r.json()).then(d=>{
+  apiFetch(`/api/admin/inbound?${qs}`).then(r=>r.json()).then(d=>{
       const tbody = document.getElementById('inbound-table-body');
       tbody.innerHTML = (d.rows||[]).map(r => `
         <tr>
@@ -630,7 +646,7 @@ function loadOutboundData(){
   const startDate = document.getElementById('outbound-date-start')?.value || '';
   const endDate = document.getElementById('outbound-date-end')?.value || '';
   const qs = new URLSearchParams({ page: outboundPage, pageSize: outboundPageSize, search, status, startDate, endDate, sort: outboundSort }).toString();
-  fetch(`/api/admin/outbound?${qs}`, fetchOpts()).then(r=>r.json()).then(d=>{
+  apiFetch(`/api/admin/outbound?${qs}`).then(r=>r.json()).then(d=>{
       const tbody = document.getElementById('outbound-table-body');
       tbody.innerHTML = (d.rows||[]).map(r => `
         <tr>
@@ -657,7 +673,7 @@ function loadInventoryData(){
   const search = document.getElementById('inventory-search')?.value || '';
   const category = document.getElementById('inventory-category-filter')?.value || '';
   const qs = new URLSearchParams({ page: inventoryPage, pageSize: inventoryPageSize, search, category, sort: inventorySort }).toString();
-  fetch(`/api/admin/inventory?${qs}`, fetchOpts()).then(r=>r.json()).then(d=>{
+  apiFetch(`/api/admin/inventory?${qs}`).then(r=>r.json()).then(d=>{
       const tbody = document.getElementById('inventory-table-body');
       tbody.innerHTML = (d.rows||[]).map(r => `
         <tr>
@@ -687,7 +703,7 @@ function loadOrdersData(){
   const startDate = document.getElementById('order-date-start')?.value || '';
   const endDate = document.getElementById('order-date-end')?.value || '';
   const qs = new URLSearchParams({ page: ordersPage, pageSize: ordersPageSize, search, status, startDate, endDate, sort: ordersSort }).toString();
-  fetch(`/api/admin/orders?${qs}`, fetchOpts()).then(r=>r.json()).then(d=>{
+  apiFetch(`/api/admin/orders?${qs}`).then(r=>r.json()).then(d=>{
       const tbody = document.getElementById('orders-table-body');
       tbody.innerHTML = (d.rows||[]).map(r => `
         <tr>
