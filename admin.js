@@ -591,9 +591,9 @@ function submitInbound(event) {
       .then(r=>r.json())
       .then(d=>{
         if (!d.success) { showNotification(d.error||'创建失败', 'error'); return; }
-        showNotification('入库单创建成功！', 'success');
-        closeModal();
-        loadInboundData();
+    showNotification('入库单创建成功！', 'success');
+    closeModal();
+    loadInboundData();
         // 同步刷新库存列表，方便你马上看到库存变化
         loadInventoryData();
       })
