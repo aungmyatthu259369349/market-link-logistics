@@ -367,7 +367,7 @@ function trackPackageModal() {
         trackingNumber: trackingNumber,
         status: '运输中',
         location: '仰光配送中心',
-        estimatedDelivery: '2024-01-20'
+        estimatedDelivery: '2023-01-20'
     };
     
     resultDiv.innerHTML = `
